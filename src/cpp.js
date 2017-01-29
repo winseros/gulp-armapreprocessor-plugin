@@ -174,7 +174,7 @@ function cpp_js(settings) {
     }
 
     // generate a 3 tuple (command, arguments, code_block)
-    var block_re = new RegExp("^" + settings.signal_char +
+    var block_re = new RegExp("^[ \t]*" + settings.signal_char +
         "(\\w+)[ \t]*(.*?)[ \t]*$", "m"
     );
 

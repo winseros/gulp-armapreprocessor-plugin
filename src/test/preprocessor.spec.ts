@@ -9,7 +9,7 @@ describe('preprocessor', () => {
             const path = join(__dirname, './test_data/preprocessor/file1.txt');
             const contents = fs.readFileSync(path);
             Preprocessor.preprocess(new File({ path, contents })).then((data: string) => {
-                expect(data).toEqual('file6contents\n\nfile2contents\nfile3contents\n\nfile5contents\n\nfile4contents\n\nfile1contents');
+                expect(data).toEqual('file2contents1\n\nfile6contents\n\nfile2contents2\nfile3contents\n\nfile5contents\n\nfile4contents\n\nfile1contents');
                 done();
             });
         });

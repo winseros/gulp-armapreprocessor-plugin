@@ -1,2 +1,3 @@
-#include "file6.txt"
-file2contents
+file2contents1
+                         #include "file6.txt"
+file2contents2
