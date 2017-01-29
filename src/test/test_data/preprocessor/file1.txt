@@ -1,0 +1,3 @@
+#include "file2.txt"
+#include "folder1/file4.txt"
+file1contents

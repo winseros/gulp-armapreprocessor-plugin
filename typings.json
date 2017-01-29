@@ -1,0 +1,12 @@
+{
+  "devDependencies": {
+    "chalk": "registry:npm/chalk#1.1.1+20160812215109",
+    "gulp-util": "registry:dt/gulp-util#3.0.0+20161129185857",
+    "through2": "registry:npm/through2#2.0.0+20160817101636",
+    "vinyl": "registry:npm/vinyl#1.2.0+20161017220031"
+  },
+  "globalDevDependencies": {
+    "jasmine": "registry:dt/jasmine#2.5.0+20170117213604",
+    "node": "registry:dt/node#7.0.0+20170124134802"
+  }
+}

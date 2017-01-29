@@ -1,0 +1,2 @@
+#include "file6.txt"
+file2contents

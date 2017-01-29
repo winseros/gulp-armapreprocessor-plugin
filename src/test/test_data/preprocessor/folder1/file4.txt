@@ -1,0 +1,2 @@
+#include "folder2/file5.txt"
+file4contents

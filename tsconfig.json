@@ -1,0 +1,17 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "declaration": true,
+        "forceConsistentCasingInFileNames": true,
+        "listFiles": true,
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noResolve": true,
+        "noUnusedLocals": true,
+        "pretty": true,
+        "strictNullChecks": true,
+        "target": "ES6"
+    }
+}
