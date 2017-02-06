@@ -1,14 +1,14 @@
 import { PreprocessorStream } from '../preprocessorStream';
 import { Preprocessor } from '../preprocessor';
 import * as path from 'path';
-import { Readable, Writable } from 'stream';
+import { Readable, Writable, Duplex } from 'stream';
 import { PluginError } from 'gulp-util';
 import File = require('vinyl');
 
 describe('preprocessorStream', () => {
     describe('_transform', () => {
         it('should throw in case of streaming input', (done: Function) => {
-            const file = new File({ base: './src', path: path.normalize('/src/file.js') });
+            const file = new File({ base: './src', path: path.normalize('/src/file.js'), contents: new Duplex() });
             spyOn(file, 'isStream').and.returnValue(true);
 
             const stream = new Readable({ objectMode: true, read: () => 0 });
@@ -20,6 +20,19 @@ describe('preprocessorStream', () => {
                     done();
                 });
 
+            stream.push(file);
+        });
+
+        it('should not throw if file has no content', (done: Function) => {
+            const file = new File({ path: './file1.txt' });
+            const stream = new Readable({ objectMode: true, read: () => 0 });
+            stream.pipe(new PreprocessorStream()).pipe(new Writable({
+                objectMode: true,
+                write: (chunk: any, encoding: string, callback: Function) => {
+                    expect(chunk).toBe(file);
+                    done();
+                }
+            }));
             stream.push(file);
         });
 

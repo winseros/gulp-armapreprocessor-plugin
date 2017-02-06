@@ -12,16 +12,20 @@ export class PreprocessorStream extends Transform {
     }
 
     _transform(file: File, encoding: string, callback: TransformCallback): void {
-        if (file.isStream()) {
-            callback(new PluginError(constants.pluginName, 'Streaming input is not supported', { fileName: file.relative }));
-            return;
+        if (file.isNull()) {
+            return callback(undefined, file);
         }
 
-        Preprocessor.preprocess(file).then((text: string) => {
+        if (!file.isBuffer()) {
+            const err = new PluginError(constants.pluginName, 'Streaming input is not supported', { fileName: file.relative });
+            return callback(err);
+        }
+
+        Preprocessor.preprocess(file).catch((msg: string) => {
+            callback(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
+        }).then((text: string) => {
             file.contents = Buffer.from(text);
             callback(undefined, file);
-        }).catch((msg: string) => {
-            callback(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
         });
     }
 }
