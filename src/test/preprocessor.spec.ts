@@ -20,7 +20,8 @@ describe('preprocessor', () => {
                 path: join(__dirname, 'somefile.txt'),
                 contents: Buffer.from(contents)
             })).catch((err: string) => {
-                expect(err).toEqual('dist\\test\\somefile.txt: could not include the file "unexisting_folder/unexisting_file.txt"');
+                const filePath = join('dist', 'test', 'somefile.txt');
+                expect(err).toEqual(`${filePath}: could not include the file "unexisting_folder/unexisting_file.txt"`);
                 done();
             });
         });
@@ -31,7 +32,8 @@ describe('preprocessor', () => {
                 path: join(__dirname, './test_data/preprocessor/somefile.txt'),
                 contents: Buffer.from(contents)
             })).catch((err: string) => {
-                expect(err).toEqual('dist\\test\\test_data\\preprocessor\\folder1\\file0.txt: could not include the file "not_esisting_file.txt"');
+                const filePath = join('dist', 'test', 'test_data', 'preprocessor', 'folder1', 'file0.txt');
+                expect(err).toEqual(`${filePath}: could not include the file "not_esisting_file.txt"`);
                 done();
             });
         });
@@ -42,7 +44,8 @@ describe('preprocessor', () => {
                 path: join(__dirname, 'file0.txt'),
                 contents: Buffer.from(contents)
             })).catch((err: string) => {
-                expect(err).toEqual('(cpp) error # dist\\test\\file0.txt:1: unbalanced parentheses in define: error( 123');
+                const filePath = join('dist', 'test', 'file0.txt:1');
+                expect(err).toEqual(`(cpp) error # ${filePath}: unbalanced parentheses in define: error( 123`);
                 done();
             });
         });
