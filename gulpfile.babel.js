@@ -6,6 +6,7 @@ import jasmine from 'gulp-jasmine';
 import consoleReporter from 'jasmine-console-reporter';
 import watch from 'gulp-watch';
 import istanbul from 'gulp-istanbul';
+import coveralls from 'gulp-coveralls';
 import remapIstanbul from 'remap-istanbul/lib/gulpRemapIstanbul';
 import del from 'del';
 import path from 'path';
@@ -18,6 +19,7 @@ const testSpecs = './dist/**/*.spec.js';
 const testSources = ['./dist/**/*.js', `!${testSpecs}`, `!./dist/cpp.js`];
 const testData = './src/**/test_data/**/*';
 const coverageDir = './.coverage'
+const lcovFile = path.join(coverageDir, 'lcov.info');
 
 gulp.task('clean', () => {
     return del([`${dist}/*`]);
@@ -70,19 +72,24 @@ gulp.task('cover:instrument', ['assemble'], () => {
 });
 
 gulp.task('cover:run', ['cover:instrument'], () => {
-    const task = gulp.src(testSpecs)
+    return gulp.src(testSpecs)
         .pipe(jasmine())
         .pipe(istanbul.writeReports({
             dir: dist,
             reporters: ['json']
         }));
+});
 
-    task.on('end', () => gulp.src(path.join(dist, 'coverage-final.json'))
+gulp.task('cover:report', ['cover:run'], () => {
+    return gulp.src(path.join(dist, 'coverage-final.json'))
         .pipe(remapIstanbul({
-            reports: { html: coverageDir }
-        })));
+            reports: { html: coverageDir, lcovonly: lcovFile }
+        }));
+});
 
-    return task;
+gulp.task('cover:coveralls', ['cover:report'], () => {
+    return gulp.src(lcovFile)
+        .pipe(coveralls());
 });
 
 gulp.task('watch', ['assemble'], () => {

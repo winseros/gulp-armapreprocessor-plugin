@@ -7,7 +7,8 @@
     "install:typings": "./node_modules/.bin/typings install",
     "install:dev": "npm install && npm run install:typings",
     "test": "./node_modules/.bin/gulp test:run",
-    "cover": "./node_modules/.bin/gulp cover:run",
+    "cover": "./node_modules/.bin/gulp cover:report",
+    "coveralls": "./node_modules/.bin/gulp cover:coveralls",
     "assemble": "./node_modules/.bin/gulp assemble",
     "watch": "./node_modules/.bin/gulp watch"
   },
@@ -40,6 +41,7 @@
     "babel-preset-env": "^1.1.8",
     "del": "^2.2.2",
     "gulp": "^3.9.1",
+    "gulp-coveralls": "^0.1.4",
     "gulp-istanbul": "^1.1.1",
     "gulp-jasmine": "^2.4.2",
     "gulp-sourcemaps": "^2.4.0",
