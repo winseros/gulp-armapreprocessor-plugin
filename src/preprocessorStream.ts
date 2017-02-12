@@ -21,9 +21,11 @@ export class PreprocessorStream extends Transform {
             return callback(err);
         }
 
-        Preprocessor.preprocess(file).catch((msg: string) => {
+        const promise = Preprocessor.preprocess(file);
+        promise.catch((msg: string) => {
             callback(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
-        }).then((text: string) => {
+        });
+        promise.then((text: string) => {
             file.contents = Buffer.from(text);
             callback(undefined, file);
         });
