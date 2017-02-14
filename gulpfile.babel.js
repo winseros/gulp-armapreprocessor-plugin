@@ -3,8 +3,8 @@ import tsc from 'gulp-typescript';
 import tslint from 'gulp-tslint';
 import sourcemaps from 'gulp-sourcemaps';
 import jasmine from 'gulp-jasmine';
+import cached from 'gulp-cached';
 import consoleReporter from 'jasmine-console-reporter';
-import watch from 'gulp-watch';
 import istanbul from 'gulp-istanbul';
 import coveralls from 'gulp-coveralls';
 import remapIstanbul from 'remap-istanbul/lib/gulpRemapIstanbul';
@@ -27,6 +27,7 @@ gulp.task('clean', () => {
 
 gulp.task('tslint', () => {
     return gulp.src(sourceFiles)
+        .pipe(cached('tslint'))
         .pipe(tslint({
             formatter: "verbose"
         })).pipe(tslint.report({
@@ -93,7 +94,5 @@ gulp.task('cover:coveralls', ['cover:report'], () => {
 });
 
 gulp.task('watch', ['assemble'], () => {
-    return watch([sourceFiles, testData], () => {
-        gulp.start('assemble');
-    });
+    return gulp.watch([sourceFiles, testData], ['assemble']);
 });

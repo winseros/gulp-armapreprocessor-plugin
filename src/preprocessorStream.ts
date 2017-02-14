@@ -3,31 +3,45 @@ import { PluginError } from 'gulp-util';
 import { Transform } from 'stream';
 import File = require('vinyl');
 import { Preprocessor } from './preprocessor';
+import { TransformCallback } from './transformCallback';
+import { PreprocessorStorage } from './preprocessorStorage';
 
-export type TransformCallback = (err?: Error, file?: File) => void;
+export interface PreprocessorStreamOptions {
+    storage?: PreprocessorStorage;
+}
 
 export class PreprocessorStream extends Transform {
-    constructor() {
+    private _preprocessor = new Preprocessor();
+
+    constructor(options?: PreprocessorStreamOptions) {
         super({ objectMode: true });
+        this._useOptions(options);
     }
 
-    _transform(file: File, encoding: string, callback: TransformCallback): void {
+    _transform(file: File, enc: string, cb: TransformCallback): void {
         if (file.isNull()) {
-            return callback(undefined, file);
+            return cb(undefined, file);
         }
 
         if (!file.isBuffer()) {
             const err = new PluginError(constants.pluginName, 'Streaming input is not supported', { fileName: file.relative });
-            return callback(err);
+            return cb(err);
         }
 
-        const promise = Preprocessor.preprocess(file);
+        const promise = this._preprocessor.preprocess(file);
+
         promise.catch((msg: string) => {
-            callback(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
+            cb(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
         });
         promise.then((text: string) => {
             file.contents = Buffer.from(text);
-            callback(undefined, file);
+            cb(undefined, file);
         });
+    }
+
+    _useOptions(options?: PreprocessorStreamOptions): void {
+        if (options && options.storage) {
+            this._preprocessor.useStorage(options.storage.data);
+        }
     }
 }

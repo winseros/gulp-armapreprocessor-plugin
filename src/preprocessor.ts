@@ -8,11 +8,13 @@ type ResolveFunc = (text: string) => void;
 type RejectFunc = (err: string) => void;
 
 export class Preprocessor {
-    public static preprocess(file: File): Promise<string> {
+    private _storage: Map<string, File>;
+
+    preprocess(file: File): Promise<string> {
         return new Promise((resolve: ResolveFunc, reject: RejectFunc) => {
             const settings = {
                 completion_func: (text: string) => resolve(text),
-                include_func: Preprocessor._getIncludeFunc(reject)
+                include_func: this._getIncludeFunc(reject)
             } as PreprocessorSettings;
 
             const pp = create(settings);
@@ -26,9 +28,22 @@ export class Preprocessor {
         });
     };
 
-    private static _getIncludeFunc(reject: RejectFunc): IncludeFunc {
-        return function include(descriptor: FileInfo, includeName: string, isGlobal: boolean, callback: CallbackFunc): void {
+    useStorage(storage: Map<string, File>): void {
+        this._storage = storage;
+    }
+
+    private _getIncludeFunc(reject: RejectFunc): IncludeFunc {
+        return (descriptor: FileInfo, includeName: string, isGlobal: boolean, callback: CallbackFunc): void => {
             const filePath = path.join(descriptor.fullDir, includeName);
+            const fileInfo = new FileInfo(filePath);
+
+            const cached = this._storage && this._storage.get(fileInfo.relativePath);
+            if (cached) {
+                const buf = cached.contents as Buffer;
+                const str = buf.toString();
+                return callback(str, fileInfo);
+            }
+
             fs.readFile(filePath, 'utf8', (err: Error, data: string) => {
                 if (err) {
                     const msg = `${descriptor.relativePath}: could not include the file "${includeName}"`;
@@ -36,7 +51,7 @@ export class Preprocessor {
                     return;
                 }
 
-                callback(data, new FileInfo(filePath));
+                callback(data, fileInfo);
             });
         };
     }

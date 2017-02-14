@@ -6,6 +6,34 @@ import { PluginError } from 'gulp-util';
 import File = require('vinyl');
 
 describe('preprocessorStream', () => {
+    describe('ctor', () => {
+        it('should handle no options', () => {
+            spyOn(Preprocessor.prototype, 'useStorage');
+
+            new PreprocessorStream();//tslint:disable-line:no-unused-new
+
+            expect(Preprocessor.prototype.useStorage).not.toHaveBeenCalled();
+        });
+
+        it('should handle empty options', () => {
+            spyOn(Preprocessor.prototype, 'useStorage');
+
+            new PreprocessorStream({});//tslint:disable-line:no-unused-new
+
+            expect(Preprocessor.prototype.useStorage).not.toHaveBeenCalled();
+        });
+
+        it('should handle fulfilled options', () => {
+            spyOn(Preprocessor.prototype, 'useStorage');
+
+            const data = { prop: 'data' };
+            new PreprocessorStream({ storage: { data: data } as any });//tslint:disable-line:no-unused-new
+
+            expect(Preprocessor.prototype.useStorage).toHaveBeenCalledTimes(1);
+            expect(Preprocessor.prototype.useStorage).toHaveBeenCalledWith(data);
+        });
+    });
+
     describe('_transform', () => {
         it('should throw in case of streaming input', (done: Function) => {
             const file = new File({ base: './src', path: path.normalize('/src/file.js'), contents: new Duplex() });
@@ -41,7 +69,7 @@ describe('preprocessorStream', () => {
             const file = new File({ contents: Buffer.from(initialData) });
 
             const preprocessedData = 'some-preprocessed-text';
-            spyOn(Preprocessor, 'preprocess').and.returnValue(Promise.resolve(preprocessedData));
+            spyOn(Preprocessor.prototype, 'preprocess').and.returnValue(Promise.resolve(preprocessedData));
 
             const stream = new Readable({ objectMode: true, read: () => 0 });
             stream
@@ -49,8 +77,8 @@ describe('preprocessorStream', () => {
                 .pipe(new Writable({
                     objectMode: true,
                     write: (processedFile: any) => {
-                        expect(Preprocessor.preprocess).toHaveBeenCalledTimes(1);
-                        expect(Preprocessor.preprocess).toHaveBeenCalledWith(file);
+                        expect(Preprocessor.prototype.preprocess).toHaveBeenCalledTimes(1);
+                        expect(Preprocessor.prototype.preprocess).toHaveBeenCalledWith(file);
 
                         expect(processedFile).toBe(file);
                         expect(processedFile.contents).toEqual(Buffer.from(preprocessedData));
@@ -66,7 +94,7 @@ describe('preprocessorStream', () => {
             const file = new File({ contents: Buffer.from(initialData), path: 'file-path' });
 
             const errorText = 'some-error-text';
-            spyOn(Preprocessor, 'preprocess').and.returnValue(Promise.reject(errorText));
+            spyOn(Preprocessor.prototype, 'preprocess').and.callFake(() => Promise.reject(errorText));
 
             const stream = new Readable({ objectMode: true, read: () => 0 });
             stream
