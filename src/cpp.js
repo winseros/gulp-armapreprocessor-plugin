@@ -365,7 +365,7 @@ function cpp_js(settings) {
             name = name || '<unnamed>';
 
             if (!text) {
-                error('input empty or null');
+                return this._result([], state);
             }
 
             text = settings.comment_stripper(text);
