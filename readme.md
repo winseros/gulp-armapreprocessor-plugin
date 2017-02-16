@@ -75,6 +75,9 @@ Add the current stream content into the storage
 ### storage.clear()
 Clean out the storage
 
+## Known issues
+The `#define`'s containing both `#` and `single-quote` symbols inside their values (e.g. `#define STRUCT_TEXT "<t color='#aaffaa'>%1</t>"`) get corrupted while processing. To avoid, replace `single-quote` symbols with `2x double-quote`, e.g. `#define STRUCT_TEXT "<t color=""#aaffaa"">%1</t>"`.
+
 [node-url]: https://nodejs.org
 [node-image]: https://img.shields.io/node/v/gulp-armapreprocessor.svg
 
