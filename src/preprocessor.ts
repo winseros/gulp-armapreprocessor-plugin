@@ -34,7 +34,7 @@ export class Preprocessor {
 
     private _getIncludeFunc(reject: RejectFunc): IncludeFunc {
         return (descriptor: FileInfo, includeName: string, isGlobal: boolean, callback: CallbackFunc): void => {
-            const filePath = path.join(descriptor.fullDir, includeName);
+            const filePath = path.join(descriptor.fullDir, includeName).replace('\\', '/');
             const fileInfo = new FileInfo(filePath);
 
             const cached = this._storage && this._storage.get(fileInfo.relativePath);
