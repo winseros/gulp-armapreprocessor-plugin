@@ -1,5 +1,10 @@
 export type CallbackFunc = (contents: string | null, descriptor?: any) => void;
-export type IncludeFunc = (descriptor: any, includeName: string, isGlobal: boolean, callback: CallbackFunc) => void;
+export type IncludeFunc = (
+    descriptor: any,
+    includeName: string,
+    isGlobal: boolean,
+    callback: CallbackFunc
+) => void;
 
 export interface PreprocessorSettings {
     signal_char?: string;

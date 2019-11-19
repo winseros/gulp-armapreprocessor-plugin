@@ -1,8 +1,8 @@
-import { create, PreprocessorSettings, IncludeFunc, CallbackFunc } from './cpp';
-import { FileInfo } from './fileInfo';
-import File = require('vinyl');
 import * as fs from 'fs';
 import * as path from 'path';
+import File = require('vinyl');
+import { CallbackFunc, create, IncludeFunc, PreprocessorSettings } from './cpp';
+import { FileInfo } from './fileInfo';
 
 type ResolveFunc = (text: string) => void;
 type RejectFunc = (err: string) => void;
@@ -20,20 +20,25 @@ export class Preprocessor {
             const pp = create(settings);
 
             try {
-                const data = file.contents.toString();
+                const data = file.contents!.toString();
                 pp.run(data, new FileInfo(file.path));
             } catch (ex) {
                 reject(ex);
             }
         });
-    };
+    }
 
     useStorage(storage: Map<string, File>): void {
         this._storage = storage;
     }
 
     private _getIncludeFunc(reject: RejectFunc): IncludeFunc {
-        return (descriptor: FileInfo, includeName: string, isGlobal: boolean, callback: CallbackFunc): void => {
+        return (
+            descriptor: FileInfo,
+            includeName: string,
+            isGlobal: boolean,
+            callback: CallbackFunc
+        ): void => {
             const filePath = path.join(descriptor.fullDir, includeName).replace('\\', '/');
             const fileInfo = new FileInfo(filePath);
 
@@ -44,7 +49,7 @@ export class Preprocessor {
                 return callback(str, fileInfo);
             }
 
-            fs.readFile(filePath, 'utf8', (err: Error, data: string) => {
+            fs.readFile(filePath, 'utf8', (err: Error | null, data: string) => {
                 if (err) {
                     const msg = `${descriptor.relativePath}: could not include the file "${includeName}"`;
                     reject(msg);

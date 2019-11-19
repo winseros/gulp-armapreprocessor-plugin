@@ -1,7 +1,7 @@
+import { PluginError } from 'gulp-util';
+import { Transform } from 'stream';
 import * as File from 'vinyl';
 import { constants } from './constants';
-import { Transform } from 'stream';
-import { PluginError } from 'gulp-util';
 import { TransformCallback } from './transformCallback';
 
 class AddStream extends Transform {
@@ -14,7 +14,9 @@ class AddStream extends Transform {
 
     _transform(file: File, enc: string, cb: TransformCallback): void {
         if (!file.isBuffer()) {
-            const err = new PluginError(constants.pluginName, 'Streaming input is not supported', { fileName: file.relative });
+            const err = new PluginError(constants.pluginName, 'Streaming input is not supported', {
+                fileName: file.relative
+            });
             return cb(err);
         }
         this._cache.set(file.relative, file);

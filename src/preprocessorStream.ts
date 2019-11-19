@@ -1,10 +1,10 @@
-import { constants } from './constants';
 import { PluginError } from 'gulp-util';
 import { Transform } from 'stream';
 import File = require('vinyl');
+import { constants } from './constants';
 import { Preprocessor } from './preprocessor';
-import { TransformCallback } from './transformCallback';
 import { PreprocessorStorage } from './preprocessorStorage';
+import { TransformCallback } from './transformCallback';
 
 export interface PreprocessorStreamOptions {
     storage?: PreprocessorStorage;
@@ -24,7 +24,9 @@ export class PreprocessorStream extends Transform {
         }
 
         if (!file.isBuffer()) {
-            const err = new PluginError(constants.pluginName, 'Streaming input is not supported', { fileName: file.relative });
+            const err = new PluginError(constants.pluginName, 'Streaming input is not supported', {
+                fileName: file.relative
+            });
             return cb(err);
         }
 
