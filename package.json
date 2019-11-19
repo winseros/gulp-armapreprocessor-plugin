@@ -4,13 +4,10 @@
   "description": "The plugin for Gulp which allows to resolve C++ preprocessor instructions",
   "main": "dist/main.js",
   "scripts": {
-    "install:typings": "./node_modules/.bin/typings install",
-    "install:dev": "npm install && npm run install:typings",
-    "test": "./node_modules/.bin/gulp test:run",
-    "cover": "./node_modules/.bin/gulp cover:report",
-    "coveralls": "./node_modules/.bin/gulp cover:coveralls",
-    "assemble": "./node_modules/.bin/gulp assemble",
-    "watch": "./node_modules/.bin/gulp watch"
+    "build": "tsc -d --sourceMap --outDir ./dist",
+    "rebuild": "rimraf ./dist/* && rimraf ./.buildcache/* && yarn build",
+    "codestyle:check": "prettier -c src/*.ts && tslint src/*.ts",
+    "codestyle:fix": "prettier --write src/*.ts && tslint --fix src/*.ts"
   },
   "repository": {
     "type": "git",
@@ -34,25 +31,25 @@
   },
   "homepage": "https://github.com/winseros/gulp-armapreprocessor-plugin#readme",
   "engines": {
-    "node": ">=6.9.0"
+    "node": ">=12.0.0"
   },
   "devDependencies": {
-    "babel-core": "^6.22.1",
-    "babel-preset-env": "^1.1.8",
-    "del": "^2.2.2",
-    "gulp": "^3.9.1",
-    "gulp-cached": "^1.1.1",
-    "gulp-coveralls": "^0.1.4",
-    "gulp-istanbul": "^1.1.1",
-    "gulp-jasmine": "^2.4.2",
-    "gulp-sourcemaps": "^2.4.0",
-    "gulp-tslint": "^7.0.1",
-    "gulp-typescript": "^3.1.4",
-    "jasmine": "^2.5.3",
-    "jasmine-console-reporter": "^1.2.7",
-    "remap-istanbul": "^0.8.4",
-    "tslint": "^4.4.2",
-    "typings": "^2.1.0"
+    "@types/gulp": "^4.0.6",
+    "@types/gulp-util": "^3.0.34",
+    "@types/jest": "^24.0.23",
+    "@types/node": "^12.12.9",
+    "@types/vinyl": "^2.0.4",
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1",
+    "rimraf": "^3.0.0",
+    "ts-jest": "^24.1.0",
+    "ts-node": "^8.5.2",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.2"
+  },
+  "peerDependencies": {
+    "gulp-util": "^3.0.8",
+    "vinyl": "^2.2.0"
   },
   "files": [
     "dist/**/*.js",

@@ -1,17 +1,28 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
-        "declaration": true,
-        "forceConsistentCasingInFileNames": true,
-        "listFiles": true,
-        "module": "commonjs",
+        "alwaysStrict": true,
+        "baseUrl": "./src",
+        "incremental": true,
+        "lib": [
+            "es2018"
+        ],
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "noEmitHelpers": true,
+        "noEmitOnError": true,
+        "noErrorTruncation": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
         "noImplicitThis": true,
-        "noResolve": true,
-        "noUnusedLocals": true,
-        "pretty": true,
+        "rootDir": "./src",
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
         "strictNullChecks": true,
-        "target": "ES6"
-    }
+        "target": "es2018",
+        "tsBuildInfoFile": ".buildcache/tsbuildinfo"
+    },
+    "include": [
+        "./src/**/*.ts"
+    ]
 }
