@@ -1,0 +1,8 @@
+some text //with inline
+ // comment
+ another text//also with
+a quoted "//text " with ' //quotes'
+
+// a bit more
+of this
+/

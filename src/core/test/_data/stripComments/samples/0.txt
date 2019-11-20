@@ -1,0 +1,5 @@
+some 
+multiline 
+text
+without
+comments

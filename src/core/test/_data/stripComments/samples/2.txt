@@ -1,0 +1,17 @@
+some text /* with block
+// comment
+data*/
+
+and 
+
+/*
+more comments/*
+
+and/*a bit more*/comments/* //
+and some */
+more*/
+more*/
+data
+
+/* *
+aa
