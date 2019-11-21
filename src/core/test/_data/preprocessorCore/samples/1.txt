@@ -1,0 +1,19 @@
+#ifdef AAA
+AAA
+#else
+BBB
+#endif
+
+#ifndef CCC
+DDD
+#else
+EEE
+#endif
+
+#ifdef GGG
+HHH
+#endif
+
+#ifndef JJJ
+KKK
+#endif

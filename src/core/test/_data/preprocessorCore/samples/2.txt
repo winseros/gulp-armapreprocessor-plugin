@@ -1,0 +1,13 @@
+//single line comment
+SOME CODE /*multi line comment begins here
+commented line
+commented line */
+SOME CODE
+SOME CODE
+SOME CODE
+SOME CODE
+//single line comment
+/* multi line comment begins here
+commented line
+commented line 
+*/
