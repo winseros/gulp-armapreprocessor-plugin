@@ -1,0 +1,12 @@
+#define M1
+
+#ifdef M1
+AAA
+#endif
+
+#undef M1
+#ifdef M1
+BBB
+#else
+CCC
+#endif

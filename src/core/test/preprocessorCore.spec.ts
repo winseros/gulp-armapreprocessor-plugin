@@ -29,6 +29,14 @@ describe('core/preprocessorCore', () => {
         await testOnFiles('2');
     });
 
+    it('should parse simple definitions', async () => {
+        await testOnFiles('3');
+    });
+
+    it('should parse definition constants', async () => {
+        await testOnFiles('4');
+    });
+
     const throwOnCommand = async (text: string, message: string, lineNumber: number) => {
         const file = new File({ path: __filename, contents: Buffer.from(text) });
         const pp = new PreprocessorCore(new FileSystemIncludeResolver());

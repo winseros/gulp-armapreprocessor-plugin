@@ -3,36 +3,16 @@ import { PluginError } from 'gulp-util';
 import * as File from 'vinyl';
 import { constants } from '../constants';
 import { DefinitionCollection } from './definitionCollection';
+import { definitionParser } from './definitionParser';
 import { IncludeResolver } from './includeResolver';
+import { IfBlock, ProcessContext } from './processContext';
 import { stripComments } from './stripComments';
+import { makeError } from './util';
 
 const rInclude1 = /^\s*#\w+\s+"(?<name>[^s]+)"\s*$/;
 const rInclude2 = /^\s*#\w+\s+<(?<name>[^s]+)>\s*$/;
 const rCommandSingleParam = /^\s*#\w+\s+(?<name>[\w|_|$|\d]+)/;
 const rCommand = /^\s*#(?<command>[^\s]+)/;
-
-enum IfBlock {
-    None,
-    If,
-    Else
-}
-
-interface ProcessContext {
-    path: string;
-    lines: string[];
-    index: number;
-    ifblock: IfBlock;
-    ifmatch: boolean;
-    command?: string;
-}
-
-const makeError = (msg: string, ctx: ProcessContext) =>
-    new PluginError({
-        plugin: constants.pluginName,
-        message: msg,
-        fileName: ctx.path,
-        lineNumber: ctx.index
-    });
 
 export class PreprocessorCore {
     private readonly _includeResolver: IncludeResolver;
@@ -81,8 +61,12 @@ export class PreprocessorCore {
             if (this._tryHandleUndef(ctx)) {
                 return 1;
             }
-            if (await this._tryHandleIncludes(ctx)) {
+            if (await this._tryHandleInclude(ctx)) {
                 return 0;
+            }
+            const d = this._tryHandleDefine(ctx);
+            if (d) {
+                return d;
             }
             throw makeError(`Unknown preprocessor directive: #${ctx.command}`, ctx);
         } else {
@@ -178,7 +162,7 @@ export class PreprocessorCore {
         return false;
     }
 
-    async _tryHandleIncludes(ctx: ProcessContext): Promise<boolean> {
+    async _tryHandleInclude(ctx: ProcessContext): Promise<boolean> {
         if (ctx.command === 'include') {
             const str = ctx.lines[ctx.index];
             const inc = str.match(rInclude1) || str.match(rInclude2);
@@ -199,6 +183,28 @@ export class PreprocessorCore {
             }
         }
         return false;
+    }
+
+    _tryHandleDefine(ctx: ProcessContext): number {
+        if (ctx.command === 'define') {
+            if (ctx.ifblock) {
+                throw makeError('Embedded #define is not supported', ctx);
+            }
+            const m = ctx.lines[ctx.index].match(rCommandSingleParam);
+            if (m) {
+                ctx.lines[ctx.index] = ctx.lines[ctx.index].substring(m[0].length);
+                const definition = definitionParser(ctx);
+                this._definitions.define(m.groups!.name, definition);
+                for (let i = 0; i < definition.lineCount; i++) {
+                    ctx.lines[ctx.index + i] = '';
+                }
+                return definition.lineCount;
+            } else {
+                throw makeError('Malformed #define directive', ctx);
+            }
+        } else {
+            return 0;
+        }
     }
 
     _splitLines(text: Buffer): string[] {

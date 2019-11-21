@@ -1,0 +1,16 @@
+#define M1 abcd
+
+#ifdef M1
+AAA
+#endif
+
+M1
+
+#define M2 aa\
+           bb\
+           cc
+
+M2
+
+#define M3(P1) P1
+#define M4(P1, AA , B ,C) P1##AA##B##C
