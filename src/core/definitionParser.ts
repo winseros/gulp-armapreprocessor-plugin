@@ -6,9 +6,9 @@ export interface Definition {
     value?: string;
 }
 
-
 const parseMacro = (ctx: ProcessContext): Definition => {
     const lines = [];
+    return null as any;
 };
 
 const nextLine = (str: string) => {
@@ -36,7 +36,7 @@ const trimForwardSpace = (str: string) => {
     return trim ? str.substring(trim) : str;
 };
 
-const parseConstant = (ctx: ProcessContext): Definition => {
+const parseExpression = (ctx: ProcessContext): Definition => {
     const lines = [];
 
     for (let i = ctx.index; i < ctx.lines.length; i++) {
@@ -59,23 +59,12 @@ const parseConstant = (ctx: ProcessContext): Definition => {
 };
 
 export const definitionParser = (ctx: ProcessContext): Definition => {
-    const line = ctx.lines[ctx.index];
-    if (line.trim() === '') {
+    if (ctx.current.trim() === '') {
         return {
             lineCount: 1
         };
     } else {
-        switch (line[0]) {
-            case '(':
-                const macro = parseMacro(ctx);
-                return macro;
-            case '#':
-                const df = parseConstant(ctx);
-                df.value = `"${df.value}"`;
-                return df;
-            default:
-                const ct = parseConstant(ctx);
-                return ct;
-        }
+        const result = ctx.current[0] === '(' ? parseMacro(ctx) : parseExpression(ctx);
+        return result;
     }
 };

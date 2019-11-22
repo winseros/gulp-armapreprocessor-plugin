@@ -5,13 +5,7 @@ import { SignatureParser } from '../signatureParser';
 describe('core/signatureParser', () => {
     const expectPass = (text: string, params: string[], length: number) => {
         const sp = new SignatureParser();
-        const ctx: ProcessContext = {
-            index: 0,
-            lines: [text],
-            path: '',
-            ifblock: IfBlock.None,
-            ifmatch: false
-        };
+        const ctx = new ProcessContext('', [text]);
         const sig = sp.parse(ctx);
         expect(sig.params).toEqual(params);
         expect(sig.charCount).toEqual(length);
@@ -20,14 +14,8 @@ describe('core/signatureParser', () => {
     const expectThrow = (text: string, message: string) => {
         try {
             const sp = new SignatureParser();
-            const ctx: ProcessContext = {
-                index: 0,
-                lines: [text],
-                path: '',
-                ifblock: IfBlock.None,
-                ifmatch: false
-            };
-            const sig = sp.parse(ctx);
+            const ctx = new ProcessContext('', [text]);
+            sp.parse(ctx);
             fail();
         } catch (err) {
             expect(err).toBeInstanceOf(PluginError);

@@ -1,8 +1,5 @@
 import * as assert from 'assert';
-import { PluginError } from 'gulp-util';
 import * as File from 'vinyl';
-import { constants } from '../constants';
-import { DefinitionCollection } from './definitionCollection';
 import { definitionParser } from './definitionParser';
 import { IncludeResolver } from './includeResolver';
 import { IfBlock, ProcessContext } from './processContext';
@@ -16,7 +13,6 @@ const rCommand = /^\s*#(?<command>[^\s]+)/;
 
 export class PreprocessorCore {
     private readonly _includeResolver: IncludeResolver;
-    private readonly _definitions = new DefinitionCollection();
 
     constructor(includeResolver: IncludeResolver) {
         assert(includeResolver, 'includeResolver');
@@ -25,15 +21,10 @@ export class PreprocessorCore {
 
     async process(file: File): Promise<void> {
         const lines = this._splitLines(file.contents as Buffer);
-        const ctx: ProcessContext = {
-            lines,
-            index: 0,
-            path: file.path,
-            ifblock: IfBlock.None,
-            ifmatch: false
-        };
+        const ctx = new ProcessContext(file.path, lines);
         while (ctx.index < ctx.lines.length) {
-            ctx.index += await this._processLine(ctx);
+            const numLines = await this._processLine(ctx);
+            ctx.next(numLines);
         }
         if (ctx.ifblock) {
             throw makeError('Non-closed #ifdef / #ifndef / #else block', ctx);
@@ -43,7 +34,7 @@ export class PreprocessorCore {
     }
 
     async _processLine(ctx: ProcessContext): Promise<number> {
-        const m = ctx.lines[ctx.index].match(rCommand);
+        const m = ctx.current.match(rCommand);
         if (m) {
             ctx.command = m.groups!.command;
             if (this._tryHandleIfdef(ctx)) {
@@ -74,7 +65,7 @@ export class PreprocessorCore {
         }
 
         if (ctx.ifblock && !ctx.ifmatch) {
-            ctx.lines[ctx.index] = '';
+            ctx.current = '';
         }
 
         return 1;
@@ -85,11 +76,11 @@ export class PreprocessorCore {
             if (ctx.ifblock) {
                 throw makeError('Embedded #ifdef is not supported', ctx);
             }
-            const m = ctx.lines[ctx.index].match(rCommandSingleParam);
+            const m = ctx.current.match(rCommandSingleParam);
             if (m) {
                 ctx.ifblock = IfBlock.If;
-                ctx.ifmatch = this._definitions.defined(m.groups!.name);
-                ctx.lines[ctx.index] = '';
+                ctx.ifmatch = ctx.defs.has(m.groups!.name);
+                ctx.current = '';
                 return true;
             } else {
                 throw makeError('Malformed #ifdef directive', ctx);
@@ -103,11 +94,11 @@ export class PreprocessorCore {
             if (ctx.ifblock) {
                 throw makeError('Embedded #ifdef is not supported', ctx);
             }
-            const m = ctx.lines[ctx.index].match(rCommandSingleParam);
+            const m = ctx.current.match(rCommandSingleParam);
             if (m) {
                 ctx.ifblock = IfBlock.If;
-                ctx.ifmatch = !this._definitions.defined(m.groups!.name);
-                ctx.lines[ctx.index] = '';
+                ctx.ifmatch = !ctx.defs.has(m.groups!.name);
+                ctx.current = '';
                 return true;
             } else {
                 throw makeError('Malformed #ifndef directive', ctx);
@@ -126,7 +117,7 @@ export class PreprocessorCore {
             }
             ctx.ifblock = IfBlock.Else;
             ctx.ifmatch = !ctx.ifmatch;
-            ctx.lines[ctx.index] = '';
+            ctx.current = '';
             return true;
         }
         return false;
@@ -139,7 +130,7 @@ export class PreprocessorCore {
             }
             ctx.ifblock = IfBlock.None;
             ctx.ifmatch = false;
-            ctx.lines[ctx.index] = '';
+            ctx.current = '';
             return true;
         }
         return false;
@@ -150,10 +141,10 @@ export class PreprocessorCore {
             if (ctx.ifblock) {
                 throw makeError('Embedded #undef is not supported', ctx);
             }
-            const m = ctx.lines[ctx.index].match(rCommandSingleParam);
+            const m = ctx.current.match(rCommandSingleParam);
             if (m) {
-                this._definitions.undef(m.groups!.name);
-                ctx.lines[ctx.index] = '';
+                ctx.defs.delete(m.groups!.name);
+                ctx.current = '';
                 return true;
             } else {
                 throw makeError('Malformed #undef directive', ctx);
@@ -164,7 +155,7 @@ export class PreprocessorCore {
 
     async _tryHandleInclude(ctx: ProcessContext): Promise<boolean> {
         if (ctx.command === 'include') {
-            const str = ctx.lines[ctx.index];
+            const str = ctx.current;
             const inc = str.match(rInclude1) || str.match(rInclude2);
             if (inc) {
                 if (!ctx.ifblock || ctx.ifmatch) {
@@ -175,7 +166,7 @@ export class PreprocessorCore {
                     ctx.lines.push(...splitted);
                     ctx.lines.push(...right);
                 } else {
-                    ctx.lines[ctx.index] = '';
+                    ctx.current = '';
                 }
                 return true;
             } else {
@@ -190,11 +181,11 @@ export class PreprocessorCore {
             if (ctx.ifblock) {
                 throw makeError('Embedded #define is not supported', ctx);
             }
-            const m = ctx.lines[ctx.index].match(rCommandSingleParam);
+            const m = ctx.current.match(rCommandSingleParam);
             if (m) {
-                ctx.lines[ctx.index] = ctx.lines[ctx.index].substring(m[0].length);
+                ctx.current = ctx.current.substring(m[0].length);
                 const definition = definitionParser(ctx);
-                this._definitions.define(m.groups!.name, definition);
+                ctx.defs.set(m.groups!.name, definition);
                 for (let i = 0; i < definition.lineCount; i++) {
                     ctx.lines[ctx.index + i] = '';
                 }

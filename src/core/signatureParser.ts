@@ -11,8 +11,7 @@ export class SignatureParser {
     private _index: number;
 
     parse(ctx: ProcessContext): MacroSignature {
-        const line = ctx.lines[ctx.index];
-        if (line[0] !== '(') {
+        if (ctx.current[0] !== '(') {
             throw makeError('Macro signature is expected to start with "("', ctx);
         }
         this._index = 1;
@@ -20,10 +19,10 @@ export class SignatureParser {
             charCount: 0,
             params: []
         };
-        while (this._index < line.length) {
+        while (this._index < ctx.current.length) {
             const p = this._readNextParam(ctx);
             signature.params.push(p);
-            if (line[this._index] === ')') {
+            if (ctx.current[this._index] === ')') {
                 break;
             } else {
                 this._index++;
@@ -32,7 +31,7 @@ export class SignatureParser {
 
         this._validateParams(ctx, signature.params);
 
-        if (line[this._index] === ')') {
+        if (ctx.current[this._index] === ')') {
             signature.charCount = this._index + 1;
         } else {
             throw makeError('Macro signature is expected to end with ")"', ctx);
