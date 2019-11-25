@@ -13,11 +13,13 @@ export class ProcessContext {
     ifblock = IfBlock.None;
     ifmatch = false;
     command?: string;
+    startLine = 0;
     private _index = 0;
 
-    constructor(path: string, lines: string[]) {
+    constructor(path: string, lines: string[], startLine = 0) {
         this.path = path;
         this.lines = lines;
+        this.startLine = startLine;
     }
 
     get index(): number {
@@ -30,6 +32,10 @@ export class ProcessContext {
 
     set current(value: string) {
         this.lines[this._index] = value;
+    }
+
+    get eof(): boolean {
+        return this.index >= this.lines.length;
     }
 
     next(lines = 1): this {

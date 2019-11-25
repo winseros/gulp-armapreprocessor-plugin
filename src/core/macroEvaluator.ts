@@ -1,6 +1,7 @@
 import { Definition } from './definitionParser';
 import { ProcessContext } from './processContext';
 import { makeError } from './util';
+import { CallParser } from './callParser';
 
 interface DefinitionPos {
     start: number;
@@ -46,7 +47,7 @@ export class MacroEvaluator {
                 if (impl.value) {
                     this._evalConstant(ctx, impl, pos);
                 } else if (impl.invoke) {
-                    this._evalExpression(ctx, impl, pos);
+                    this._tryEvalExpression(ctx, impl, pos);
                 }
             }
         }
@@ -54,20 +55,33 @@ export class MacroEvaluator {
 
     _findDefinition(line: string, def: string): DefinitionPos {
         const start = line.indexOf(def);
-        return start >= 0 && this._isOperand(line, def, start)
+        return start >= 0 && this._isOperand(line, def, start) && !this._isInString(line, def, start)
             ? { start, end: start + def.length }
             : { start: 0, end: 0 };
     }
 
-    _isOperand(line: string, def: string, index: number): boolean {
-        const left = index === 0 || MacroEvaluator._operandSeparators.indexOf(line[index - 1]) >= 0;
+    _isOperand(line: string, def: string, pos: number): boolean {
+        const left = pos === 0 || MacroEvaluator._operandSeparators.indexOf(line[pos - 1]) >= 0;
         if (left) {
             const right =
-                index + def.length === line.length ||
-                MacroEvaluator._operandSeparators.indexOf(line[index + def.length]) >= 0;
+                pos + def.length === line.length ||
+                MacroEvaluator._operandSeparators.indexOf(line[pos + def.length]) >= 0;
             return right;
         }
         return false;
+    }
+
+    _isInString(line: string, def: string, pos: number): boolean {
+        let quotes = 0;
+        let l = pos - 1;
+        while (l >= 0) {
+            if (line[l] === '"') {
+                quotes++;
+            }
+            l--;
+        }
+        const isIn = quotes % 2 === 1;
+        return isIn;
     }
 
     _evalConstant(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
@@ -86,5 +100,39 @@ export class MacroEvaluator {
         ctx.current = left + (stringify ? `"${def.value}"` : def.value) + right;
     }
 
-    _evalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {}
+    _tryEvalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
+        const startIndex = ctx.index;
+        const call = this._getCallParser().parse(ctx, pos.end);
+        if (call) {
+            if (call.params.length === def.invoke!.params.length) {
+                call.params = call.params.map(p => {
+                    const localCtx = new ProcessContext(ctx.path, [p], ctx.index);
+                    new MacroEvaluator().evaluate(localCtx);
+                    return localCtx.lines[0];
+                });
+                if (startIndex === ctx.index) {
+                    ctx.current = ctx.current.substr(0, pos.start) + 'abcd' + ctx.current.substr(call.end + 1);
+                    ctx.next();
+                } else {
+                    const deleteLines = ctx.index - startIndex - 2;
+                    ctx.lines[startIndex] = ctx.lines[startIndex].substr(0, pos.start);
+                    ctx.lines[ctx.index] = ctx.lines[ctx.index].substr(call.end);
+                    ctx.lines.splice(startIndex + 1, deleteLines);
+                    ctx.next(-deleteLines);
+                }
+            } else {
+                const macro = ctx.current.substring(pos.start, pos.end);
+                throw makeError(
+                    `Macro \"${macro}\" definition had ${
+                        def.invoke!.params.length
+                    } arguments but was called with ${call.params.length} params`,
+                    ctx
+                );
+            }
+        }
+    }
+
+    _getCallParser(): CallParser {
+        return new CallParser();
+    }
 }

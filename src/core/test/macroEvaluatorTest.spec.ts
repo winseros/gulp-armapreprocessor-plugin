@@ -4,7 +4,7 @@ import { ProcessContext } from '../processContext';
 describe('core/macroEvaluator', () => {
     const expectPass = (input: string, expected: string) => {
         const ctx = new ProcessContext('', [input]);
-        ctx.defs.set('MACRO', { lineCount: 1, value: 'VALUE' });
+        ctx.defs.set('MACRO', { value: 'VALUE' });
         new MacroEvaluator().evaluate(ctx);
         expect(ctx.current).toEqual(expected);
     };
@@ -23,5 +23,16 @@ describe('core/macroEvaluator', () => {
         expectPass('if (MACRO)', 'if (VALUE)');
         expectPass('if (MACRO && a)', 'if (VALUE && a)');
         expectPass('if (b||MACRO)', 'if (b||VALUE)');
+    });
+
+    it('should not evaluate constant inside a string', () => {
+        expectPass('abc "MACRO" def', 'abc "MACRO" def');
+    });
+
+    it('should evaluate call macro', () => {
+        const ctx = new ProcessContext('', ['call M1(1,2,3);']);
+        ctx.defs.set('M1', { invoke: {params: ['A', 'B', 'C'], call: () => ''} });
+        new MacroEvaluator().evaluate(ctx);
+        expect(ctx.current).toEqual('');
     });
 });

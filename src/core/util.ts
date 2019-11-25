@@ -7,5 +7,5 @@ export const makeError = (msg: string, ctx: ProcessContext) =>
         plugin: constants.pluginName,
         message: msg,
         fileName: ctx.path,
-        lineNumber: ctx.index
+        lineNumber: ctx.index + ctx.startLine
     });

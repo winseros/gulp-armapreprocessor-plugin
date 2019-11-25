@@ -22,9 +22,8 @@ export class PreprocessorCore {
     async process(file: File): Promise<void> {
         const lines = this._splitLines(file.contents as Buffer);
         const ctx = new ProcessContext(file.path, lines);
-        while (ctx.index < ctx.lines.length) {
-            const numLines = await this._processLine(ctx);
-            ctx.next(numLines);
+        while (!ctx.eof) {
+            await this._processLine(ctx);
         }
         if (ctx.ifblock) {
             throw makeError('Non-closed #ifdef / #ifndef / #else block', ctx);
@@ -33,31 +32,30 @@ export class PreprocessorCore {
         file.contents = Buffer.from(txt);
     }
 
-    async _processLine(ctx: ProcessContext): Promise<number> {
+    async _processLine(ctx: ProcessContext): Promise<void> {
         const m = ctx.current.match(rCommand);
         if (m) {
             ctx.command = m.groups!.command;
             if (this._tryHandleIfdef(ctx)) {
-                return 1;
+                return;
             }
             if (this._tryHandleIfndef(ctx)) {
-                return 1;
+                return;
             }
             if (this._tryHandleElse(ctx)) {
-                return 1;
+                return;
             }
             if (this._tryHandleEndif(ctx)) {
-                return 1;
+                return;
             }
             if (this._tryHandleUndef(ctx)) {
-                return 1;
+                return;
             }
             if (await this._tryHandleInclude(ctx)) {
-                return 0;
+                return;
             }
-            const d = this._tryHandleDefine(ctx);
-            if (d) {
-                return d;
+            if (this._tryHandleDefine(ctx)) {
+                return;
             }
             throw makeError(`Unknown preprocessor directive: #${ctx.command}`, ctx);
         } else {
@@ -68,7 +66,7 @@ export class PreprocessorCore {
             ctx.current = '';
         }
 
-        return 1;
+        ctx.next();
     }
 
     _tryHandleIfdef(ctx: ProcessContext): boolean {
@@ -81,6 +79,7 @@ export class PreprocessorCore {
                 ctx.ifblock = IfBlock.If;
                 ctx.ifmatch = ctx.defs.has(m.groups!.name);
                 ctx.current = '';
+                ctx.next();
                 return true;
             } else {
                 throw makeError('Malformed #ifdef directive', ctx);
@@ -99,6 +98,7 @@ export class PreprocessorCore {
                 ctx.ifblock = IfBlock.If;
                 ctx.ifmatch = !ctx.defs.has(m.groups!.name);
                 ctx.current = '';
+                ctx.next();
                 return true;
             } else {
                 throw makeError('Malformed #ifndef directive', ctx);
@@ -118,6 +118,7 @@ export class PreprocessorCore {
             ctx.ifblock = IfBlock.Else;
             ctx.ifmatch = !ctx.ifmatch;
             ctx.current = '';
+            ctx.next();
             return true;
         }
         return false;
@@ -131,6 +132,7 @@ export class PreprocessorCore {
             ctx.ifblock = IfBlock.None;
             ctx.ifmatch = false;
             ctx.current = '';
+            ctx.next();
             return true;
         }
         return false;
@@ -145,6 +147,7 @@ export class PreprocessorCore {
             if (m) {
                 ctx.defs.delete(m.groups!.name);
                 ctx.current = '';
+                ctx.next();
                 return true;
             } else {
                 throw makeError('Malformed #undef directive', ctx);
@@ -176,7 +179,7 @@ export class PreprocessorCore {
         return false;
     }
 
-    _tryHandleDefine(ctx: ProcessContext): number {
+    _tryHandleDefine(ctx: ProcessContext): boolean {
         if (ctx.command === 'define') {
             if (ctx.ifblock) {
                 throw makeError('Embedded #define is not supported', ctx);
@@ -186,15 +189,12 @@ export class PreprocessorCore {
                 ctx.current = ctx.current.substring(m[0].length);
                 const definition = definitionParser(ctx);
                 ctx.defs.set(m.groups!.name, definition);
-                for (let i = 0; i < definition.lineCount; i++) {
-                    ctx.lines[ctx.index + i] = '';
-                }
-                return definition.lineCount;
+                return true;
             } else {
                 throw makeError('Malformed #define directive', ctx);
             }
         } else {
-            return 0;
+            return false;
         }
     }
 

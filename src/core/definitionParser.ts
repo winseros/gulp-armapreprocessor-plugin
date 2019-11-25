@@ -1,8 +1,10 @@
 import { ProcessContext } from './processContext';
 
 export interface Definition {
-    lineCount: number;
-    invoke?: (params?: string[]) => string;
+    invoke?: {
+        params: string[];
+        call: (params: string[]) => string;
+    };
     value?: string;
 }
 
@@ -39,8 +41,14 @@ const trimForwardSpace = (str: string) => {
 const parseExpression = (ctx: ProcessContext): Definition => {
     const lines = [];
 
-    for (let i = ctx.index; i < ctx.lines.length; i++) {
-        let line = i === ctx.index ? trimForwardSpace(ctx.lines[i]) : ctx.lines[i];
+    let first = true;
+    while (!ctx.eof) {
+        let line = first ? trimForwardSpace(ctx.current) : ctx.current;
+        ctx.current = '';
+        ctx.next();
+
+        first = false;
+
         const nextLineChar = nextLine(line);
         if (nextLineChar >= 0) {
             line = line.substring(0, nextLineChar);
@@ -53,16 +61,13 @@ const parseExpression = (ctx: ProcessContext): Definition => {
 
     const text = lines.length > 1 ? lines.join('\n') : lines[0];
     return {
-        lineCount: lines.length,
         value: text
     };
 };
 
 export const definitionParser = (ctx: ProcessContext): Definition => {
     if (ctx.current.trim() === '') {
-        return {
-            lineCount: 1
-        };
+        return {};
     } else {
         const result = ctx.current[0] === '(' ? parseMacro(ctx) : parseExpression(ctx);
         return result;
