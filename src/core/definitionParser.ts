@@ -1,14 +1,12 @@
-import { ProcessContext } from './processContext';
+import {ProcessContext} from './processContext';
 
 export interface Definition {
-    invoke?: {
-        params: string[];
-        call: (params: string[]) => string;
-    };
-    value?: string;
+    params?: string[];
+    callable: boolean;
+    body: string;
 }
 
-const parseMacro = (ctx: ProcessContext): Definition => {
+const parseCallable = (ctx: ProcessContext): Definition => {
     const lines = [];
     return null as any;
 };
@@ -38,7 +36,7 @@ const trimForwardSpace = (str: string) => {
     return trim ? str.substring(trim) : str;
 };
 
-const parseExpression = (ctx: ProcessContext): Definition => {
+const parseStatic = (ctx: ProcessContext): Definition => {
     const lines = [];
 
     let first = true;
@@ -61,15 +59,16 @@ const parseExpression = (ctx: ProcessContext): Definition => {
 
     const text = lines.length > 1 ? lines.join('\n') : lines[0];
     return {
-        value: text
+        body: text,
+        callable: false
     };
 };
 
 export const definitionParser = (ctx: ProcessContext): Definition => {
     if (ctx.current.trim() === '') {
-        return {};
+        return {body: '', callable: false};
     } else {
-        const result = ctx.current[0] === '(' ? parseMacro(ctx) : parseExpression(ctx);
+        const result = ctx.current[0] === '(' ? parseCallable(ctx) : parseStatic(ctx);
         return result;
     }
 };

@@ -1,7 +1,7 @@
+import { CallParser } from './callParser';
 import { Definition } from './definitionParser';
 import { ProcessContext } from './processContext';
 import { makeError } from './util';
-import { CallParser } from './callParser';
 
 interface DefinitionPos {
     start: number;
@@ -44,10 +44,10 @@ export class MacroEvaluator {
             const pos = this._findDefinition(ctx.current, def);
             if (pos.end) {
                 const impl = ctx.defs.get(def)!;
-                if (impl.value) {
-                    this._evalConstant(ctx, impl, pos);
-                } else if (impl.invoke) {
+                if (impl.callable) {
                     this._tryEvalExpression(ctx, impl, pos);
+                } else {
+                    this._evalConstant(ctx, impl, pos);
                 }
             }
         }
@@ -97,35 +97,42 @@ export class MacroEvaluator {
         if (right.startsWith('##')) {
             right = right.substr(2);
         }
-        ctx.current = left + (stringify ? `"${def.value}"` : def.value) + right;
+        ctx.current = left + (stringify ? `"${def.body}"` : def.body) + right;
     }
 
     _tryEvalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
         const startIndex = ctx.index;
         const call = this._getCallParser().parse(ctx, pos.end);
         if (call) {
-            if (call.params.length === def.invoke!.params.length) {
+            if (call.params.length === def.params!.length) {
                 call.params = call.params.map(p => {
-                    const localCtx = new ProcessContext(ctx.path, [p], ctx.index);
+                    const localCtx = ctx.shallowCopy(p);
                     new MacroEvaluator().evaluate(localCtx);
                     return localCtx.lines[0];
                 });
+
+                const mCtx = ctx.deepCopy(def.body);
+                call.params.forEach((p, i) => mCtx.defs.set(def.params![i], { body: p, callable: false }));
+                new MacroEvaluator().evaluate(mCtx);
+
                 if (startIndex === ctx.index) {
-                    ctx.current = ctx.current.substr(0, pos.start) + 'abcd' + ctx.current.substr(call.end + 1);
-                    ctx.next();
+                    ctx.current =
+                        ctx.current.substr(0, pos.start) + mCtx.lines[0] + ctx.current.substr(call.end + 1);
                 } else {
-                    const deleteLines = ctx.index - startIndex - 2;
-                    ctx.lines[startIndex] = ctx.lines[startIndex].substr(0, pos.start);
-                    ctx.lines[ctx.index] = ctx.lines[ctx.index].substr(call.end);
+                    const deleteLines = ctx.index - startIndex;
+                    ctx.lines[startIndex] =
+                        ctx.lines[startIndex].substr(0, pos.start) +
+                        mCtx.lines[0] +
+                        ctx.lines[ctx.index].substr(call.end + 1);
                     ctx.lines.splice(startIndex + 1, deleteLines);
                     ctx.next(-deleteLines);
                 }
             } else {
                 const macro = ctx.current.substring(pos.start, pos.end);
                 throw makeError(
-                    `Macro \"${macro}\" definition had ${
-                        def.invoke!.params.length
-                    } arguments but was called with ${call.params.length} params`,
+                    `Macro \"${macro}\" definition had ${def.params!.length} arguments but was called with ${
+                        call.params.length
+                    } params`,
                     ctx
                 );
             }

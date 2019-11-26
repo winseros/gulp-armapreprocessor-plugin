@@ -1,4 +1,5 @@
-import { ProcessContext } from './processContext';
+import {ProcessContext} from './processContext';
+import {makeError} from './util';
 
 export class Call {
     params: string[];
@@ -16,7 +17,7 @@ export class CallParser {
                 s = param.next;
                 end = param.end;
                 if (!end || param.name !== '') {
-                    params.push(param.name); //a single '' param - means () call signaturee
+                    params.push(param.name); //a single '' param - means () call signature
                 }
             }
             return {
@@ -36,9 +37,14 @@ export class CallParser {
         let parenthesis = 0;
         while (true) {
             if (i >= ctx.current.length) {
-                param += '\n';
                 ctx.next();
-                i = 0;
+                if (ctx.eof) {
+                    end = true;
+                    break;
+                } else {
+                    param += '\n';
+                    i = 0;
+                }
             }
             if (ctx.current[i] === '(') {
                 if (!isString) {
@@ -64,7 +70,7 @@ export class CallParser {
                 } else {
                     isString = true;
                 }
-            } else if (ctx.current[i] === ',') {
+            } else if (ctx.current[i] === ',' && !parenthesis) {
                 if (!isString) {
                     i++;
                     break;

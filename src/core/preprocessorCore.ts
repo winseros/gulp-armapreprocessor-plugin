@@ -8,7 +8,7 @@ import { makeError } from './util';
 
 const rInclude1 = /^\s*#\w+\s+"(?<name>[^s]+)"\s*$/;
 const rInclude2 = /^\s*#\w+\s+<(?<name>[^s]+)>\s*$/;
-const rCommandSingleParam = /^\s*#\w+\s+(?<name>[\w|_|$|\d]+)/;
+const rCommandSingleParam = /^\s*#\w+\s+(?<name>[\w_$\d]+)/;
 const rCommand = /^\s*#(?<command>[^\s]+)/;
 
 export class PreprocessorCore {

@@ -16,5 +16,10 @@ describe('callParser', () => {
         expectPass(['(A', ',', 'B', ',', 'C', ') a'], 0, ['A\n', '\nB\n', '\nC\n']);
         expectPass(['(A,"B","""C""") a'], 14, ['A', '"B"', '"""C"""']);
         expectPass(['((A && bb || cd), [1], [("a")]) a'], 30, ['(A && bb || cd)', ' [1]', ' [("a")]']);
+        expectPass(['(A(1,2),B(2,3),C(4,5))a'], 21, ['A(1,2)', 'B(2,3)', 'C(4,5)']);
+    });
+
+    it('should parse macro within end of file', () => {
+        expectPass(['(A(1,2),B(2,3),C(4,5'], 20, ['A(1,2)', 'B(2,3)', 'C(4,5']);
     });
 });

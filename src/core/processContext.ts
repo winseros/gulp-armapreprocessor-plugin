@@ -1,4 +1,4 @@
-import { Definition } from './definitionParser';
+import {Definition} from './definitionParser';
 
 export enum IfBlock {
     None,
@@ -9,17 +9,18 @@ export enum IfBlock {
 export class ProcessContext {
     readonly path: string;
     readonly lines: string[];
-    readonly defs = new Map<string, Definition>();
+    readonly defs: Map<string, Definition>;
     ifblock = IfBlock.None;
     ifmatch = false;
     command?: string;
     startLine = 0;
     private _index = 0;
 
-    constructor(path: string, lines: string[], startLine = 0) {
+    constructor(path: string, lines: string[], startLine = 0, defs = new Map<string, Definition>()) {
         this.path = path;
         this.lines = lines;
         this.startLine = startLine;
+        this.defs = defs;
     }
 
     get index(): number {
@@ -41,5 +42,17 @@ export class ProcessContext {
     next(lines = 1): this {
         this._index += lines;
         return this;
+    }
+
+    deepCopy(body: string): ProcessContext {
+        const ctx = new ProcessContext(this.path, [body], this._index);
+        for (const pair of this.defs) {
+            ctx.defs.set(pair[0], pair[1]);
+        }
+        return ctx;
+    }
+
+    shallowCopy(body: string): ProcessContext {
+        return new ProcessContext(this.path, [body], this._index, this.defs);
     }
 }
