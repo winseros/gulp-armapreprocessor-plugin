@@ -1,7 +1,7 @@
 import { CallParser } from './callParser';
 import { Definition } from './definitionParser';
 import { ProcessContext } from './processContext';
-import { makeError } from './util';
+import { isInString, makeError } from './util';
 
 interface DefinitionPos {
     start: number;
@@ -41,21 +41,22 @@ export class MacroEvaluator {
 
     evaluate(ctx: ProcessContext): void {
         for (const def of ctx.defs.keys()) {
-            const pos = this._findDefinition(ctx.current, def);
-            if (pos.end) {
-                const impl = ctx.defs.get(def)!;
+            const impl = ctx.defs.get(def)!;
+            let pos = this._findDefinition(ctx.current, def);
+            while (pos.end) {
                 if (impl.callable) {
                     this._tryEvalExpression(ctx, impl, pos);
                 } else {
                     this._evalConstant(ctx, impl, pos);
                 }
+                pos = this._findDefinition(ctx.current, def);
             }
         }
     }
 
     _findDefinition(line: string, def: string): DefinitionPos {
         const start = line.indexOf(def);
-        return start >= 0 && this._isOperand(line, def, start) && !this._isInString(line, def, start)
+        return start >= 0 && this._isOperand(line, def, start) && !isInString(line, def, start)
             ? { start, end: start + def.length }
             : { start: 0, end: 0 };
     }
@@ -71,33 +72,15 @@ export class MacroEvaluator {
         return false;
     }
 
-    _isInString(line: string, def: string, pos: number): boolean {
-        let quotes = 0;
-        let l = pos - 1;
-        while (l >= 0) {
-            if (line[l] === '"') {
-                quotes++;
-            }
-            l--;
-        }
-        const isIn = quotes % 2 === 1;
-        return isIn;
-    }
-
     _evalConstant(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
-        let stringify = false;
-        let left = pos.start > 0 ? ctx.current.substr(0, pos.start) : '';
-        if (left.endsWith('##')) {
-            left = left.substr(0, left.length - 2);
-        } else if (left.endsWith('#')) {
-            left = left.substr(0, left.length - 1);
-            stringify = true;
-        }
-        let right = pos.end < ctx.current.length ? ctx.current.substr(pos.end) : '';
-        if (right.startsWith('##')) {
-            right = right.substr(2);
-        }
-        ctx.current = left + (stringify ? `"${def.body}"` : def.body) + right;
+        const left = pos.start > 0 ? ctx.current.substr(0, pos.start) : '';
+        const right = pos.end < ctx.current.length ? ctx.current.substr(pos.end) : '';
+
+        /*const bctx = ctx.shallowCopy(def.body);
+        this.evaluate(bctx);
+        ctx.current = left + bctx.lines[0] + right;*/
+
+        ctx.current = left + def.body + right;
     }
 
     _tryEvalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
@@ -106,23 +89,23 @@ export class MacroEvaluator {
         if (call) {
             if (call.params.length === def.params!.length) {
                 call.params = call.params.map(p => {
-                    const localCtx = ctx.shallowCopy(p);
-                    new MacroEvaluator().evaluate(localCtx);
-                    return localCtx.lines[0];
+                    const pctx = ctx.shallowCopy(p);
+                    this.evaluate(pctx);
+                    return pctx.lines[0];
                 });
 
-                const mCtx = ctx.deepCopy(def.body);
-                call.params.forEach((p, i) => mCtx.defs.set(def.params![i], { body: p, callable: false }));
-                new MacroEvaluator().evaluate(mCtx);
+                const bctx = ctx.deepCopy(def.body);
+                call.params.forEach((p, i) => bctx.defs.set(def.params![i], { body: p, callable: false }));
+                this.evaluate(bctx);
 
                 if (startIndex === ctx.index) {
                     ctx.current =
-                        ctx.current.substr(0, pos.start) + mCtx.lines[0] + ctx.current.substr(call.end + 1);
+                        ctx.current.substr(0, pos.start) + bctx.lines[0] + ctx.current.substr(call.end + 1);
                 } else {
                     const deleteLines = ctx.index - startIndex;
                     ctx.lines[startIndex] =
                         ctx.lines[startIndex].substr(0, pos.start) +
-                        mCtx.lines[0] +
+                        bctx.lines[0] +
                         ctx.lines[ctx.index].substr(call.end + 1);
                     ctx.lines.splice(startIndex + 1, deleteLines);
                     ctx.next(-deleteLines);
