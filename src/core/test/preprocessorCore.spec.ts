@@ -6,14 +6,14 @@ import { readFile, resolveFile } from './util';
 
 describe('core/preprocessorCore', () => {
     const testOnFiles = async (target: string) => {
-        const fileName = `_data/preprocessorCore/samples/${target}.txt`;
+        const fileName = `src/core/test/_data/preprocessorCore/samples/${target}.txt`;
         const data = await readFile(fileName);
         const file = new File({ path: resolveFile(fileName), contents: Buffer.from(data) });
         const pp = new PreprocessorCore(new FileSystemIncludeResolver());
         await pp.process(file);
 
         const contents = file.contents.toString();
-        const expected = await readFile(`_data/preprocessorCore/expected/${target}.txt`);
+        const expected = await readFile(`src/core/test/_data/preprocessorCore/expected/${target}.txt`);
         expect(contents).toEqual(expected);
     };
 
@@ -46,7 +46,7 @@ describe('core/preprocessorCore', () => {
         } catch (err) {
             expect(err).toBeInstanceOf(PluginError);
             expect(err.message).toEqual(message);
-            expect(err.fileName).toEqual(__filename);
+            expect(err.fileName).toEqual(__filename.substr(process.cwd().length + 1));
             expect(err.lineNumber).toEqual(lineNumber);
         }
     };

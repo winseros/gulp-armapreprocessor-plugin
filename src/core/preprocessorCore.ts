@@ -23,15 +23,19 @@ export class PreprocessorCore {
 
     async process(file: File): Promise<void> {
         const lines = this._splitLines(file.contents as Buffer);
-        const ctx = new ProcessContext(file.path, lines);
-        while (!ctx.eof) {
-            await this._processLine(ctx);
-        }
+        const ctx = new ProcessContext(file.relative, lines);
+        await this._iterateOverContext(ctx);
         if (ctx.ifblock) {
             throw makeError('Non-closed #ifdef / #ifndef / #else block', ctx);
         }
         const txt = lines.join('\n');
         file.contents = Buffer.from(txt);
+    }
+
+    async _iterateOverContext(ctx: ProcessContext): Promise<void> {
+        while (!ctx.eof) {
+            await this._processLine(ctx);
+        }
     }
 
     async _processLine(ctx: ProcessContext): Promise<void> {
@@ -167,10 +171,14 @@ export class PreprocessorCore {
                 if (!ctx.ifblock || ctx.ifmatch) {
                     const name = inc.groups!.name;
                     const included = await this._includeResolver.getContents(name, ctx.path);
-                    const splitted = this._splitLines(included);
+                    const splitted = this._splitLines(included.contents as Buffer);
+                    const ictx = new ProcessContext(included.relative, splitted, ctx.index, ctx.defs);
+                    await this._iterateOverContext(ictx);
                     const right = ctx.lines.splice(ctx.index).splice(1);
+                    ctx.ifblock += ictx.ifblock;
                     ctx.lines.push(...splitted);
                     ctx.lines.push(...right);
+                    ctx.next(ictx.index);
                 } else {
                     ctx.current = '';
                 }

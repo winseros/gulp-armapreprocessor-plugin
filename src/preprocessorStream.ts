@@ -2,7 +2,8 @@ import { PluginError } from 'gulp-util';
 import { Transform } from 'stream';
 import File = require('vinyl');
 import { constants } from './constants';
-import { Preprocessor } from './preprocessor';
+import { CacheIncludeResolver, FileSystemIncludeResolver, IncludeResolver } from './core/includeResolver';
+import { PreprocessorCore } from './core/preprocessorCore';
 import { PreprocessorStorage } from './preprocessorStorage';
 import { TransformCallback } from './transformCallback';
 
@@ -11,11 +12,18 @@ export interface PreprocessorStreamOptions {
 }
 
 export class PreprocessorStream extends Transform {
-    private _preprocessor = new Preprocessor();
+    private readonly _resolver: IncludeResolver;
+    private readonly _preprocessor: PreprocessorCore;
 
     constructor(options?: PreprocessorStreamOptions) {
         super({ objectMode: true });
-        this._useOptions(options);
+
+        const fsResolver = new FileSystemIncludeResolver();
+        this._resolver =
+            options && options.storage
+                ? this._createCacheResolver(fsResolver, options.storage.data)
+                : fsResolver;
+        this._preprocessor = new PreprocessorCore(this._resolver);
     }
 
     _transform(file: File, enc: string, cb: TransformCallback): void {
@@ -30,20 +38,23 @@ export class PreprocessorStream extends Transform {
             return cb(err);
         }
 
-        const promise = this._preprocessor.preprocess(file);
+        const promise = this._preprocessor.process(file);
 
-        promise.catch((msg: string) => {
-            cb(new PluginError(constants.pluginName, msg, { fileName: file.relative }));
+        promise.catch(ex => {
+            if (ex instanceof PluginError) {
+                cb(ex);
+            } else {
+                cb(new PluginError(constants.pluginName, ex.message, { fileName: file.relative }));
+            }
         });
-        promise.then((text: string) => {
-            file.contents = Buffer.from(text);
+        promise.then(() => {
             cb(undefined, file);
         });
     }
 
-    _useOptions(options?: PreprocessorStreamOptions): void {
-        if (options && options.storage) {
-            this._preprocessor.useStorage(options.storage.data);
-        }
+    _createCacheResolver(backend: IncludeResolver, data: File[]): IncludeResolver {
+        const res = new CacheIncludeResolver(backend);
+        data.forEach(f => res.register(f));
+        return res;
     }
 }

@@ -1,5 +1,6 @@
 import { PluginError } from 'gulp-util';
 import * as path from 'path';
+import * as File from 'vinyl';
 import { CacheIncludeResolver, FileSystemIncludeResolver, IncludeResolver } from '../includeResolver';
 
 describe('core/includeResolver', () => {
@@ -8,21 +9,21 @@ describe('core/includeResolver', () => {
             const res = new FileSystemIncludeResolver();
             const file = path.join('src', 'core', 'test', '_data', 'includeResolver', '1.sqf');
             const buf = await res.getContents('data.txt', file);
-            expect(buf.toString()).toEqual('some data');
+            expect(buf.contents!.toString()).toEqual('some data');
         });
 
         it('should resolve files from filesystem 2', async () => {
             const res = new FileSystemIncludeResolver();
             const file = path.join('src', 'core', 'test', '_data', '1.sqf');
             const buf = await res.getContents('includeResolver\\data.txt', file);
-            expect(buf.toString()).toEqual('some data');
+            expect(buf.contents!.toString()).toEqual('some data');
         });
 
         it('should resolve files from filesystem 3', async () => {
             const res = new FileSystemIncludeResolver();
             const file = path.join('src', 'core', 'test', '_data', 'includeResolver', 'f1', 'f2', '1.sqf');
             const buf = await res.getContents('..\\..\\data.txt', file);
-            expect(buf.toString()).toEqual('some data');
+            expect(buf.contents!.toString()).toEqual('some data');
         });
 
         it('should throw if file has not been found', async () => {
@@ -42,16 +43,16 @@ describe('core/includeResolver', () => {
     });
 
     describe('CacheIncludeResolver', () => {
-        it('should return cached data', async () => {
+        it('should return cached _data', async () => {
             const back: IncludeResolver = { getContents: jest.fn() };
             const res = new CacheIncludeResolver(back);
 
-            const buf = Buffer.from('some data');
-            res.register('1.txt', buf);
+            const file = new File({ path: path.join(process.cwd(), '1.txt'), contents: Buffer.from('some data') })
+            res.register(file);
 
-            const contents = await res.getContents('1.txt', '2.txt');
+            const resolved = await res.getContents('1.txt', '2.txt');
 
-            expect(contents).toBe(buf);
+            expect(resolved).toBe(file);
 
             expect(back.getContents).toHaveBeenCalledTimes(0);
         });
@@ -60,24 +61,24 @@ describe('core/includeResolver', () => {
             const back: IncludeResolver = { getContents: jest.fn() };
             const res = new CacheIncludeResolver(back);
 
-            const buf = Buffer.from('some data');
-            res.register('1.txt', buf);
+            const file = new File({ path: path.join(process.cwd(), '1.txt'), contents: Buffer.from('some data') })
+            res.register(file);;
 
-            const contents = await res.getContents('../../1.txt', 'f1/f2/2.txt');
+            const resolved = await res.getContents('../../1.txt', 'f1/f2/2.txt');
 
-            expect(contents).toBe(buf);
+            expect(resolved).toBe(file);
 
             expect(back.getContents).toHaveBeenCalledTimes(0);
         });
 
-        it('should call the backend if no cached data data', async () => {
-            const buf = Buffer.from('some data');
-            const back: IncludeResolver = { getContents: jest.fn().mockResolvedValue(buf) };
+        it('should call the backend if no cached data', async () => {
+            const file = new File({ path: '1.txt', contents: Buffer.from('some data') });
+            const back: IncludeResolver = { getContents: jest.fn().mockResolvedValue(file) };
             const res = new CacheIncludeResolver(back);
 
-            const contents = await res.getContents('1.txt', '2.txt');
+            const resolved = await res.getContents('1.txt', '2.txt');
 
-            expect(contents).toBe(buf);
+            expect(resolved).toBe(file);
 
             expect(back.getContents).toHaveBeenCalledTimes(1);
             expect(back.getContents).toHaveBeenCalledWith('1.txt', '2.txt');

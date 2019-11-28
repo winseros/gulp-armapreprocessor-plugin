@@ -2,10 +2,11 @@ import * as assert from 'assert';
 import { promises } from 'fs';
 import { PluginError } from 'gulp-util';
 import { dirname, join, sep } from 'path';
+import * as File from 'vinyl';
 import { constants } from '../constants';
 
 export interface IncludeResolver {
-    getContents(includeFile: string, sourceFile: string): Promise<Buffer>;
+    getContents(includeFile: string, sourceFile: string): Promise<File>;
 }
 
 const reNormalize = /\\/g;
@@ -18,14 +19,14 @@ const normalize = (path: string) => {
 };
 
 export class FileSystemIncludeResolver implements IncludeResolver {
-    async getContents(includeFile: string, sourceFile: string): Promise<Buffer> {
+    async getContents(includeFile: string, sourceFile: string): Promise<File> {
         assert.ok(includeFile, 'includeFile');
         assert.ok(sourceFile, 'sourceFile');
 
         const absPath = join(dirname(join(process.cwd(), sourceFile)), normalize(includeFile));
         try {
             const contents = await promises.readFile(absPath);
-            return contents;
+            return new File({ path: absPath, contents });
         } catch (e) {
             if (e.code === 'ENOENT') {
                 throw new PluginError({
@@ -43,7 +44,7 @@ export class FileSystemIncludeResolver implements IncludeResolver {
 export class CacheIncludeResolver implements IncludeResolver {
     private readonly _backend: IncludeResolver;
     private readonly _cwd: string;
-    private readonly _cache = new Map<string, Promise<Buffer>>();
+    private readonly _cache = new Map<string, Promise<File>>();
 
     constructor(backend: IncludeResolver, cwd = process.cwd()) {
         assert.ok(backend, 'backend');
@@ -52,7 +53,7 @@ export class CacheIncludeResolver implements IncludeResolver {
         this._cwd = cwd.endsWith(sep) ? cwd : cwd + sep;
     }
 
-    getContents(includeFile: string, sourceFile: string): Promise<Buffer> {
+    getContents(includeFile: string, sourceFile: string): Promise<File> {
         const absPath = join(dirname(join(process.cwd(), sourceFile)), normalize(includeFile));
         const relpath = absPath.substr(this._cwd.length);
         if (this._cache.has(relpath)) {
@@ -63,9 +64,8 @@ export class CacheIncludeResolver implements IncludeResolver {
         }
     }
 
-    register(relpath: string, body: Buffer): void {
-        assert.ok(relpath, 'relpath');
-        assert.ok(body, 'body');
-        this._cache.set(relpath, Promise.resolve(body));
+    register(file: File): void {
+        assert.ok(file, 'file');
+        this._cache.set(file.relative, Promise.resolve(file));
     }
 }

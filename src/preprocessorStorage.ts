@@ -5,9 +5,9 @@ import { constants } from './constants';
 import { TransformCallback } from './transformCallback';
 
 class AddStream extends Transform {
-    private _cache: Map<string, File>;
+    private _cache: File[];
 
-    constructor(cache: Map<string, File>) {
+    constructor(cache: File[]) {
         super({ objectMode: true });
         this._cache = cache;
     }
@@ -19,15 +19,15 @@ class AddStream extends Transform {
             });
             return cb(err);
         }
-        this._cache.set(file.relative, file);
+        this._cache.push(file);
         cb(undefined, file);
     }
 }
 
 class ClearStream extends Transform {
-    private _cache: Map<string, File>;
+    private _cache: File[];
 
-    constructor(cache: Map<string, File>) {
+    constructor(cache: File[]) {
         super({ objectMode: true });
         this._cache = cache;
     }
@@ -37,12 +37,12 @@ class ClearStream extends Transform {
     }
 
     _flush(): void {
-        this._cache.clear();
+        this._cache.splice(0);
     }
 }
 
 export class PreprocessorStorage {
-    readonly data = new Map<string, File>();
+    readonly data: File[] = [];
     private _addStream = new AddStream(this.data);
     private _clearStream = new ClearStream(this.data);
 
