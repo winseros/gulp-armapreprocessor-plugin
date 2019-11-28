@@ -1,7 +1,8 @@
 import * as assert from 'assert';
 import * as File from 'vinyl';
-import { definitionParser } from './definitionParser';
 import { IncludeResolver } from './includeResolver';
+import { MacroEvaluator } from './macroEvaluator';
+import { parseDefinition } from './parseDefinition';
 import { IfBlock, ProcessContext } from './processContext';
 import { stripComments } from './stripComments';
 import { makeError } from './util';
@@ -13,6 +14,7 @@ const rCommand = /^\s*#(?<command>[^\s]+)/;
 
 export class PreprocessorCore {
     private readonly _includeResolver: IncludeResolver;
+    private readonly _evaluator = new MacroEvaluator();
 
     constructor(includeResolver: IncludeResolver) {
         assert(includeResolver, 'includeResolver');
@@ -66,6 +68,7 @@ export class PreprocessorCore {
             ctx.current = '';
         }
 
+        this._evaluator.evaluate(ctx);
         ctx.next();
     }
 
@@ -187,7 +190,7 @@ export class PreprocessorCore {
             const m = ctx.current.match(rCommandSingleParam);
             if (m) {
                 ctx.current = ctx.current.substring(m[0].length);
-                const definition = definitionParser(ctx);
+                const definition = parseDefinition(ctx);
                 ctx.defs.set(m.groups!.name, definition);
                 return true;
             } else {

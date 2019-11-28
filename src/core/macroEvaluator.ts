@@ -1,5 +1,6 @@
 import { CallParser } from './callParser';
-import { Definition } from './definitionParser';
+import { Definition } from './definition';
+import { evaluateString } from './evaluateString';
 import { ProcessContext } from './processContext';
 import { isInString, makeError } from './util';
 
@@ -42,20 +43,22 @@ export class MacroEvaluator {
     evaluate(ctx: ProcessContext): void {
         for (const def of ctx.defs.keys()) {
             const impl = ctx.defs.get(def)!;
-            let pos = this._findDefinition(ctx.current, def);
+            let findPos = 0;
+            let pos = this._findDefinition(ctx.current, def, findPos);
             while (pos.end) {
                 if (impl.callable) {
-                    this._tryEvalExpression(ctx, impl, pos);
+                    findPos += this._tryEvalExpression(ctx, impl, pos);
                 } else {
-                    this._evalConstant(ctx, impl, pos);
+                    findPos += this._evalConstant(ctx, impl, pos);
                 }
-                pos = this._findDefinition(ctx.current, def);
+                pos = this._findDefinition(ctx.current, def, findPos);
             }
         }
+        ctx.current = evaluateString(ctx.current);
     }
 
-    _findDefinition(line: string, def: string): DefinitionPos {
-        const start = line.indexOf(def);
+    _findDefinition(line: string, def: string, startAt: number): DefinitionPos {
+        const start = line.indexOf(def, startAt);
         return start >= 0 && this._isOperand(line, def, start) && !isInString(line, def, start)
             ? { start, end: start + def.length }
             : { start: 0, end: 0 };
@@ -72,18 +75,25 @@ export class MacroEvaluator {
         return false;
     }
 
-    _evalConstant(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
+    _evalConstant(ctx: ProcessContext, def: Definition, pos: DefinitionPos): number {
         const left = pos.start > 0 ? ctx.current.substr(0, pos.start) : '';
         const right = pos.end < ctx.current.length ? ctx.current.substr(pos.end) : '';
 
-        /*const bctx = ctx.shallowCopy(def.body);
-        this.evaluate(bctx);
-        ctx.current = left + bctx.lines[0] + right;*/
+        let value = def.body;
+        if (!def.optimized) {
+            const bctx = ctx.deepCopy(def.body);
+            const defn = ctx.current.substr(pos.start, pos.end);
+            bctx.defs.delete(defn);
+            this.evaluate(bctx);
+            value = bctx.lines[0];
+        }
 
-        ctx.current = left + def.body + right;
+        ctx.current = left + value + right;
+
+        return pos.start + value.length;
     }
 
-    _tryEvalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): void {
+    _tryEvalExpression(ctx: ProcessContext, def: Definition, pos: DefinitionPos): number {
         const startIndex = ctx.index;
         const call = this._getCallParser().parse(ctx, pos.end);
         if (call) {
@@ -95,7 +105,9 @@ export class MacroEvaluator {
                 });
 
                 const bctx = ctx.deepCopy(def.body);
-                call.params.forEach((p, i) => bctx.defs.set(def.params![i], { body: p, callable: false }));
+                call.params.forEach((p, i) =>
+                    bctx.defs.set(def.params![i], { body: p, callable: false, optimized: true })
+                );
                 this.evaluate(bctx);
 
                 if (startIndex === ctx.index) {
@@ -110,6 +122,7 @@ export class MacroEvaluator {
                     ctx.lines.splice(startIndex + 1, deleteLines);
                     ctx.next(-deleteLines);
                 }
+                return pos.start + bctx.lines[0].length;
             } else {
                 const macro = ctx.current.substring(pos.start, pos.end);
                 throw makeError(
@@ -119,6 +132,8 @@ export class MacroEvaluator {
                     ctx
                 );
             }
+        } else {
+            return pos.end;
         }
     }
 

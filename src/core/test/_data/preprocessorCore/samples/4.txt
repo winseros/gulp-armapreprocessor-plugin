@@ -14,3 +14,11 @@ M2
 
 #define M3(P1) P1
 #define M4(P1, AA , B ,C) P1##AA##B##C
+
+M3(v1);
+
+M4(x,q,M3(v),f)
+
+#define M5 #A
+
+M5

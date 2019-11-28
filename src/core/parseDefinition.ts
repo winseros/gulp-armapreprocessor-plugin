@@ -1,14 +1,14 @@
-import {ProcessContext} from './processContext';
-
-export interface Definition {
-    params?: string[];
-    callable: boolean;
-    body: string;
-}
+import { Definition } from './definition';
+import { ProcessContext } from './processContext';
+import { SignatureParser } from './signatureParser';
 
 const parseCallable = (ctx: ProcessContext): Definition => {
-    const lines = [];
-    return null as any;
+    const sig = new SignatureParser().parse(ctx);
+    ctx.current = ctx.current.substr(sig.charCount);
+    const macro = parseStatic(ctx);
+    macro.callable = true;
+    macro.params = sig.params;
+    return macro;
 };
 
 const nextLine = (str: string) => {
@@ -60,13 +60,14 @@ const parseStatic = (ctx: ProcessContext): Definition => {
     const text = lines.length > 1 ? lines.join('\n') : lines[0];
     return {
         body: text,
-        callable: false
+        callable: false,
+        optimized: false
     };
 };
 
-export const definitionParser = (ctx: ProcessContext): Definition => {
+export const parseDefinition = (ctx: ProcessContext): Definition => {
     if (ctx.current.trim() === '') {
-        return {body: '', callable: false};
+        return {body: '', callable: false, optimized: true};
     } else {
         const result = ctx.current[0] === '(' ? parseCallable(ctx) : parseStatic(ctx);
         return result;

@@ -1,4 +1,4 @@
-import {Definition} from './definitionParser';
+import { Definition } from './definition';
 
 export enum IfBlock {
     None,
