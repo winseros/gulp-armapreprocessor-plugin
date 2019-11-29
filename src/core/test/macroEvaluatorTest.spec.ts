@@ -9,6 +9,7 @@ describe('core/macroEvaluator', () => {
         ctx.defs.set('MACRO3', {body: 'MACRO', callable: false, optimized: false});
         ctx.defs.set('MACRO4', {body: 'MACRO5', callable: false, optimized: false});
         ctx.defs.set('MACRO5', {body: 'MACRO4', callable: false, optimized: false});
+        ctx.defs.set('MACRO6', {body: 'A', callable: false, optimized: false});
         new MacroEvaluator().evaluate(ctx);
         expect(ctx.current).toEqual(expected);
     };
@@ -31,6 +32,7 @@ describe('core/macroEvaluator', () => {
         expectPassConstant('if (b||MACRO)', 'if (b||VALUE)');
         expectPassConstant('if (b||MACRO3)', 'if (b||VALUE)');
         expectPassConstant('MACRO4 MACRO5', 'MACRO4 MACRO5');
+        expectPassConstant('MACRO6 MACRO6 MACRO6 MACRO6 MACRO6 MACRO6 MACRO6 MACRO6', 'A A A A A A A A');
     });
 
     it('should not evaluate constant inside a string', () => {
@@ -61,6 +63,13 @@ describe('core/macroEvaluator', () => {
         ctx.defs.set('M3', {callable: false, body: 'pM3p', optimized: false});
         new MacroEvaluator().evaluate(ctx);
         expect(ctx.current).toEqual('1+xXYx+pM3p');
+    });
+
+    it('should evaluate macro parameters with false positive matches', () => {
+        const ctx = new ProcessContext('', ['M1(1)']);
+        ctx.defs.set('M1', {params: ['A'], callable: true, body: 'xAx A xAx A', optimized: false});
+        new MacroEvaluator().evaluate(ctx);
+        expect(ctx.current).toEqual('xAx 1 xAx 1');
     });
 
     it('should evaluate multi line call macro', () => {

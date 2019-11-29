@@ -46,11 +46,9 @@ export class MacroEvaluator {
             let findPos = 0;
             let pos = this._findDefinition(ctx.current, def, findPos);
             while (pos.end) {
-                if (impl.callable) {
-                    findPos += this._tryEvalExpression(ctx, impl, pos);
-                } else {
-                    findPos += this._evalConstant(ctx, impl, pos);
-                }
+                findPos = impl.callable
+                    ? this._tryEvalExpression(ctx, impl, pos)
+                    : this._evalConstant(ctx, impl, pos);
                 pos = this._findDefinition(ctx.current, def, findPos);
             }
         }
@@ -58,10 +56,17 @@ export class MacroEvaluator {
     }
 
     _findDefinition(line: string, def: string, startAt: number): DefinitionPos {
-        const start = line.indexOf(def, startAt);
-        return start >= 0 && this._isOperand(line, def, start) && !isInString(line, def, start)
-            ? { start, end: start + def.length }
-            : { start: 0, end: 0 };
+        while (startAt < line.length) {
+            const start = line.indexOf(def, startAt);
+            if (start < 0) {
+                break;
+            } else if (this._isOperand(line, def, start) && !isInString(line, def, start)) {
+                return { start, end: start + def.length };
+            } else {
+                startAt = start + def.length;
+            }
+        }
+        return { start: 0, end: 0 };
     }
 
     _isOperand(line: string, def: string, pos: number): boolean {
