@@ -83,8 +83,8 @@ describe('preprocessorStream', () => {
                 path: 'src/test/_data/preprocessorStream/folder1/file4.txt',
                 contents: Buffer.from('file4-text')
             });
-            storage.data.push(f1);
-            storage.data.push(f2);
+            storage.data.set(f1.relative, Promise.resolve(f1));
+            storage.data.set(f2.relative, Promise.resolve(f2));
 
             return new Promise(res => {
                 const stream = new Readable({ objectMode: true, read: () => void 0 });

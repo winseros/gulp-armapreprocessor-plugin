@@ -46,11 +46,12 @@ export class CacheIncludeResolver implements IncludeResolver {
     private readonly _cwd: string;
     private readonly _cache = new Map<string, Promise<File>>();
 
-    constructor(backend: IncludeResolver, cwd = process.cwd()) {
+    constructor(backend: IncludeResolver, data: Map<string, Promise<File>>) {
         assert.ok(backend, 'backend');
-        assert.ok(cwd, 'cwd');
+        assert.ok(data, 'data');
         this._backend = backend;
-        this._cwd = cwd.endsWith(sep) ? cwd : cwd + sep;
+        this._cache = data;
+        this._cwd = process.cwd() + sep;
     }
 
     getContents(includeFile: string, sourceFile: string): Promise<File> {
@@ -62,10 +63,5 @@ export class CacheIncludeResolver implements IncludeResolver {
             const data = this._backend.getContents(includeFile, sourceFile);
             return data;
         }
-    }
-
-    register(file: File): void {
-        assert.ok(file, 'file');
-        this._cache.set(file.relative, Promise.resolve(file));
     }
 }

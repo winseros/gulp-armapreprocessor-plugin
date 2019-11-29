@@ -24,7 +24,8 @@ describe('preprocessorStorage', () => {
 
             const stream = new Readable({ objectMode: true, read: () => 0 });
             stream.pipe(storage.add()).on('finish', () => {
-                expect(storage.data).toEqual([f1, f2]);
+                expect(storage.data.has(f1.relative)).toBeTruthy();
+                expect(storage.data.has(f2.relative)).toBeTruthy();
                 done();
             });
 
@@ -40,12 +41,13 @@ describe('preprocessorStorage', () => {
             const f2 = new File({ path: 'folder/file2.txt', contents: Buffer.allocUnsafe(0) });
 
             const storage = new PreprocessorStorage();
-            storage.data.push(f1);
-            storage.data.push(f2);
+            storage.data.set(f1.relative, Promise.resolve(f1));
+            storage.data.set(f2.relative, Promise.resolve(f2));
 
             const stream = new Readable({ objectMode: true, read: () => 0 });
             stream.pipe(storage.clear()).on('finish', () => {
-                expect(storage.data).toHaveLength(0);
+                expect(storage.data.has(f1.relative)).toBeFalsy();
+                expect(storage.data.has(f2.relative)).toBeFalsy();
                 done();
             });
 

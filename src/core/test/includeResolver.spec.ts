@@ -45,10 +45,15 @@ describe('core/includeResolver', () => {
     describe('CacheIncludeResolver', () => {
         it('should return cached _data', async () => {
             const back: IncludeResolver = { getContents: jest.fn() };
-            const res = new CacheIncludeResolver(back);
 
-            const file = new File({ path: path.join(process.cwd(), '1.txt'), contents: Buffer.from('some data') })
-            res.register(file);
+            const file = new File({
+                path: path.join(process.cwd(), '1.txt'),
+                contents: Buffer.from('some data')
+            });
+            const data = new Map<string, Promise<File>>();
+            data.set(file.relative, Promise.resolve(file));
+
+            const res = new CacheIncludeResolver(back, data);
 
             const resolved = await res.getContents('1.txt', '2.txt');
 
@@ -58,11 +63,15 @@ describe('core/includeResolver', () => {
         });
 
         it('should resolve cached file paths', async () => {
-            const back: IncludeResolver = { getContents: jest.fn() };
-            const res = new CacheIncludeResolver(back);
+            const file = new File({
+                path: path.join(process.cwd(), '1.txt'),
+                contents: Buffer.from('some data')
+            });
 
-            const file = new File({ path: path.join(process.cwd(), '1.txt'), contents: Buffer.from('some data') })
-            res.register(file);;
+            const back: IncludeResolver = { getContents: jest.fn() };
+            const data = new Map<string, Promise<File>>();
+            data.set(file.relative, Promise.resolve(file));
+            const res = new CacheIncludeResolver(back, data);
 
             const resolved = await res.getContents('../../1.txt', 'f1/f2/2.txt');
 
@@ -74,7 +83,9 @@ describe('core/includeResolver', () => {
         it('should call the backend if no cached data', async () => {
             const file = new File({ path: '1.txt', contents: Buffer.from('some data') });
             const back: IncludeResolver = { getContents: jest.fn().mockResolvedValue(file) };
-            const res = new CacheIncludeResolver(back);
+
+            const data = new Map<string, Promise<File>>();
+            const res = new CacheIncludeResolver(back, data);
 
             const resolved = await res.getContents('1.txt', '2.txt');
 

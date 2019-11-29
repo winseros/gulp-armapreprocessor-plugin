@@ -21,7 +21,7 @@ export class PreprocessorStream extends Transform {
         const fsResolver = new FileSystemIncludeResolver();
         this._resolver =
             options && options.storage
-                ? this._createCacheResolver(fsResolver, options.storage.data)
+                ? new CacheIncludeResolver(fsResolver, options.storage.data)
                 : fsResolver;
         this._preprocessor = new PreprocessorCore(this._resolver);
     }
@@ -57,11 +57,5 @@ export class PreprocessorStream extends Transform {
         promise.then(() => {
             cb(undefined, file);
         });
-    }
-
-    _createCacheResolver(backend: IncludeResolver, data: File[]): IncludeResolver {
-        const res = new CacheIncludeResolver(backend);
-        data.forEach(f => res.register(f));
-        return res;
     }
 }
