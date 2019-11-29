@@ -5,9 +5,10 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -d --sourceMap --outDir ./dist",
-    "rebuild": "rimraf ./dist/* && rimraf ./.buildcache/* && yarn build",
+    "rebuild": "rimraf ./dist/* && rimraf ./.buildcache/* && npm run build",
     "codestyle:check": "prettier -c src/*.ts && tslint src/*.ts",
-    "codestyle:fix": "prettier --write src/*.ts && tslint --fix src/*.ts"
+    "codestyle:fix": "prettier --write src/*.ts && tslint --fix src/*.ts",
+    "test": "jest --coverage"
   },
   "repository": {
     "type": "git",

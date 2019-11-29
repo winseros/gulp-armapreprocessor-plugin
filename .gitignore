@@ -4,3 +4,5 @@ typings/
 .*/
 *.iml
 *.log
+.coverage/
+.buildcache/
