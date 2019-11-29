@@ -1,5 +1,5 @@
-import {ProcessContext} from './processContext';
-import {makeError} from './util';
+import { ProcessContext } from './processContext';
+import { makeError } from './util';
 
 export class Call {
     params: string[];
@@ -7,6 +7,17 @@ export class Call {
 }
 
 export class CallParser {
+    private static _parenth: { [p: string]: string } = {
+        '{': '}',
+        '}': '{',
+        '[': ']',
+        ']': '[',
+        '(': ')',
+        ')': '('
+    };
+
+    private readonly _parenthesis: string[] = [];
+
     parse(ctx: ProcessContext, start: number): Call | undefined {
         if (ctx.current[start] === '(') {
             let end = false;
@@ -34,7 +45,6 @@ export class CallParser {
         let isString = false;
         let param = '';
         let end = false;
-        let parenthesis = 0;
         while (true) {
             if (i >= ctx.current.length) {
                 ctx.next();
@@ -48,16 +58,32 @@ export class CallParser {
             }
             if (ctx.current[i] === '(') {
                 if (!isString) {
-                    parenthesis++;
+                    this._openParenthesis('(');
                 }
             } else if (ctx.current[i] === ')') {
                 if (!isString) {
-                    if (parenthesis) {
-                        parenthesis--;
+                    if (this._parenthesis.length) {
+                        this._closeParenthesis(')', ctx);
                     } else {
                         end = true;
                         break;
                     }
+                }
+            } else if (ctx.current[i] === '[') {
+                if (!isString) {
+                    this._openParenthesis('[');
+                }
+            } else if (ctx.current[i] === ']') {
+                if (!isString) {
+                    this._closeParenthesis(']', ctx);
+                }
+            } else if (ctx.current[i] === '{') {
+                if (!isString) {
+                    this._openParenthesis('{');
+                }
+            } else if (ctx.current[i] === '}') {
+                if (!isString) {
+                    this._closeParenthesis('}', ctx);
                 }
             } else if (ctx.current[i] === '"') {
                 if (isString) {
@@ -70,7 +96,7 @@ export class CallParser {
                 } else {
                     isString = true;
                 }
-            } else if (ctx.current[i] === ',' && !parenthesis) {
+            } else if (ctx.current[i] === ',' && !this._parenthesis.length) {
                 if (!isString) {
                     i++;
                     break;
@@ -84,5 +110,26 @@ export class CallParser {
             next: i,
             end
         };
+    }
+
+    _openParenthesis(type: string): void {
+        this._parenthesis.push(type);
+    }
+
+    _closeParenthesis(closeParenth: string, ctx: ProcessContext): void {
+        if (this._parenthesis.length) {
+            const last = this._parenthesis.length - 1;
+            const expected = CallParser._parenth[this._parenthesis[last]];
+            if (expected === closeParenth) {
+                this._parenthesis.splice(last);
+            } else {
+                throw makeError(
+                    `Expected "${expected}" parenthesis at macro call but got "${closeParenth}"`,
+                    ctx
+                );
+            }
+        } else {
+            throw makeError(`Unexpected "${closeParenth}" parenthesis at macro call`, ctx);
+        }
     }
 }
