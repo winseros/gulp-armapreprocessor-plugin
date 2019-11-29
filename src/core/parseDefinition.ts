@@ -11,11 +11,25 @@ const parseCallable = (ctx: ProcessContext): Definition => {
     return macro;
 };
 
+const isString = (line: string, index: number): boolean => {
+    if (index < line.length - 1) {
+        return !'\\"'.includes(line[index - 1]) && line[index + 1] !== '"';
+    } else {
+        return true;
+    }
+};
+
 const nextLine = (str: string) => {
     let index = -1;
+    let isInString = false;
     for (let i = str.length - 1; i >= 0; i--) {
         if (str[i] !== 's' && str[i] !== '\t') {
-            if (str[i] === '\\') {
+            if (str[i] === '"') {
+                if (isString(str, i)) {
+                    isInString = !isInString;
+                }
+            }
+            if (!isInString && str[i] === '\\') {
                 index = i;
                 break;
             }
@@ -67,7 +81,7 @@ const parseStatic = (ctx: ProcessContext): Definition => {
 
 export const parseDefinition = (ctx: ProcessContext): Definition => {
     if (ctx.current.trim() === '') {
-        return {body: '', callable: false, optimized: true};
+        return { body: '', callable: false, optimized: true };
     } else {
         const result = ctx.current[0] === '(' ? parseCallable(ctx) : parseStatic(ctx);
         return result;

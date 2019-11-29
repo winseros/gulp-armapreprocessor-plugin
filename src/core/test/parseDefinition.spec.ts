@@ -26,11 +26,29 @@ describe('core/parseDefinition', () => {
         expectPass(['\tV1 \\ ', 'V2'], { body: '\tV1 \nV2', callable: false, optimized: false }, 2);
         expectPass(['V1 \\', 'V2', 'blablabla'], { body: 'V1 \nV2', callable: false, optimized: false }, 2);
         expectPass([' (A,B,C)'], { body: '(A,B,C)', callable: false, optimized: false }, 1);
+        expectPass(
+            ['"\\A3\\ui_f\\data\\img\\some_img.paa"'],
+            { body: '"\\A3\\ui_f\\data\\img\\some_img.paa"', callable: false, optimized: false },
+            1
+        );
+        expectPass(
+            ['" aa ""some text inside macro""  aa "'],
+            { body: '" aa ""some text inside macro""  aa "', callable: false, optimized: false },
+            1
+        );
     });
 
     it('should parse a callable definition', () => {
         expectPass(['(A) 1##A##1'], { params: ['A'], body: '1##A##1', callable: true, optimized: false }, 1);
-        expectPass(['(A,B)\t1##A##B##1'], { params: ['A', 'B'], body: '\t1##A##B##1', callable: true, optimized: false }, 1);
-        expectPass(['(A,B)\t1##A\\', 'B##1', 'blablabla'], { params: ['A', 'B'], body: '\t1##A\nB##1', callable: true, optimized: false }, 2);
+        expectPass(
+            ['(A,B)\t1##A##B##1'],
+            { params: ['A', 'B'], body: '\t1##A##B##1', callable: true, optimized: false },
+            1
+        );
+        expectPass(
+            ['(A,B)\t1##A\\', 'B##1', 'blablabla'],
+            { params: ['A', 'B'], body: '\t1##A\nB##1', callable: true, optimized: false },
+            2
+        );
     });
 });
