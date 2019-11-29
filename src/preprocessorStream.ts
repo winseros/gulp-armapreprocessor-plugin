@@ -40,11 +40,18 @@ export class PreprocessorStream extends Transform {
 
         const promise = this._preprocessor.process(file);
 
-        promise.catch(ex => {
+        promise.catch((ex: Error) => {
             if (ex instanceof PluginError) {
                 cb(ex);
             } else {
-                cb(new PluginError(constants.pluginName, ex.message, { fileName: file.relative }));
+                cb(
+                    new PluginError({
+                        plugin: constants.pluginName,
+                        message: ex.message,
+                        fileName: file.relative,
+                        stack: ex.stack
+                    })
+                );
             }
         });
         promise.then(() => {
