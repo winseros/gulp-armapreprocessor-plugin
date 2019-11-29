@@ -1,6 +1,6 @@
 {
   "name": "gulp-armapreprocessor",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "The plugin for Gulp which allows to resolve C++ preprocessor instructions",
   "main": "dist/main.js",
   "scripts": {
