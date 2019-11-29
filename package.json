@@ -8,7 +8,9 @@
     "rebuild": "rimraf ./dist/* && rimraf ./.buildcache/* && npm run build",
     "codestyle:check": "prettier -c src/*.ts && tslint src/*.ts",
     "codestyle:fix": "prettier --write src/*.ts && tslint --fix src/*.ts",
-    "test": "jest --coverage"
+    "test": "jest",
+    "cover": "jest --coverage",
+    "coveralls": "coveralls < .coverage/lcov.info"
   },
   "repository": {
     "type": "git",
@@ -40,13 +42,16 @@
     "@types/jest": "^24.0.23",
     "@types/node": "^12.12.9",
     "@types/vinyl": "^2.0.4",
+    "coveralls": "^3.0.9",
+    "gulp-util": "^3.0.8",
     "jest": "^24.9.0",
     "prettier": "^1.19.1",
     "rimraf": "^3.0.0",
     "ts-jest": "^24.1.0",
     "ts-node": "^8.5.2",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.2",
+    "vinyl": "^2.2.0"
   },
   "peerDependencies": {
     "gulp-util": "^3.0.8",
